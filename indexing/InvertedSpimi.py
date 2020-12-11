@@ -166,7 +166,7 @@ class InvertedSpimi:
         """
         Writes each block to disk
         """
-        print("wow")
+        
         with open(block_file , "w") as file:
             for term in sorted_terms:
                 line="%s %s\n" % (term, ' '.join([str(document_id) for document_id in dictionary[term]]))
@@ -178,11 +178,3 @@ class InvertedSpimi:
         Prints the Inverted Index
         """
         print(self.inverted_index) 
-
-
-        
-
-
-
-
-
