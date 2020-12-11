@@ -166,7 +166,6 @@ class Spimi:
        
         for line in index_file:
             line=line.split()
-            #inverted_index[line[0]] = sorted(map(int,line[1:]))
             #line[0] -> term
             #line[1:] -> documents (docs ids) where the term occurs 
             for doc_id in sorted(map(int,line[1:])):
