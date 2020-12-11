@@ -122,4 +122,5 @@ class DocumentIndexer:
         corpus,real_doc_ids=corpusReader.read_content() # corpus: [[doc1_terms_after_tokenization],[doc2_terms_after_tokenization]...]
                                                         # real_doc_ids: [real_doc1_id,real_doc2_id,...]
         spimi = Spimi(corpus)
-        spimi.spimi_indexer(1500) #o size tem q se perguntar ao utilizador.
+        spimi.spimi_indexer() #o size (bytes) tem q se perguntar ao utilizador. Por default pus 150000 bytes
+        #spimi.show_inverted_index()
