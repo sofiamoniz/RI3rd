@@ -123,4 +123,4 @@ class DocumentIndexer:
                                                         # real_doc_ids: [real_doc1_id,real_doc2_id,...]
         spimi = Spimi(corpus)
         spimi.spimi_indexer() #o size (bytes) tem q se perguntar ao utilizador. Por default pus 150000 bytes
-        #spimi.show_inverted_index()
+        spimi.show_inverted_index()

@@ -149,7 +149,7 @@ class Spimi:
                     block_files.pop(first_index)
                     lines.pop(first_index)
                     
-        return self.get_inverted_index() #Now, once we have the index file (the result of merging the blocks)
+        self.get_inverted_index() #Now, once we have the index file (the result of merging the blocks)
                                         #We can create the inverted index
                                         #Note - the index file has, per line, term - docs in which the term occurs
                                         #Ex : abaecin 11904 11904 11904 11904 11904 11904 11904 11904
@@ -187,8 +187,15 @@ class Spimi:
                         posting[doc_id]=1
                         freq_posting[0]=freq_posting[0]+1
 
-        print(self.inverted_index)
+        #print(self.inverted_index)
 
+    def show_inverted_index(self):
+
+        """
+        Prints the Inverted Index
+        """
+
+        print(self.inverted_index) 
 
 
         
