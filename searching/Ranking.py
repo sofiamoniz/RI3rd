@@ -16,12 +16,14 @@ import time
 class Ranking:
 
     def __init__(self,tokenizer,queries,weighted_index):
-        self.tokenizer=tokenizer
-        self.queries=queries
-        self.weighted_index=weighted_index
-        
-        self.weighted_queries=[] # only for lnc.ltc
-        self.scores=[]
+        self.tokenizer = tokenizer
+        self.queries = queries
+        self.weighted_index = weighted_index
+
+        self.simpleTokenizer = SimpleTokenizer()
+        self.improvedTokenizer = ImprovedTokenizer()
+        self.weighted_queries = [] # only for lnc.ltc
+        self.scores = []
         self.queries_latency = {}
         self.latency_time_weight_queries = {} # only for lnc.ltc because the process have 2 parts
 
@@ -29,11 +31,9 @@ class Ranking:
     # lnc.ltc:
 
     def weight_queries_lnc_ltc(self):
-
         """
         Computes the weights for each term of the query, for all the queries
         """
-
         for query in self.queries: # one query at a time
             start_time = time.time() # latency time of this process, for each query
             temp=0
@@ -42,11 +42,9 @@ class Ranking:
 
             # Tokenize the query with the same tokenizer used on the documents:
             if self.tokenizer=='s':
-                simpleTokenizer=SimpleTokenizer()
-                query_terms = simpleTokenizer.simple_tokenizer(query)
+                query_terms = self.simpleTokenizer.simple_tokenizer(query)
             else:
-                improvedTokenizer=ImprovedTokenizer()
-                query_terms = improvedTokenizer.improved_tokenizer(query)
+                query_terms = self.improvedTokenizer.improved_tokenizer(query)
 
             for term in query_terms: # query terms already tokenized and processed
                 weighted_query[term] = weighted_query[term]+1 # tf on query
@@ -69,11 +67,9 @@ class Ranking:
             
      
     def score_lnc_ltc(self):
-
         """
         Computes the scores for all documents that answers the query
         """
-
         for i in range(0,len(self.queries)): # one query at a time
 
             start_time = time.time() # latency time of this process, for each query
@@ -95,16 +91,12 @@ class Ranking:
             self.queries_latency[i+1] = weight_time + score_time # i+1 because in the evaluation part the id for the queries starts at 1
 
 
-
-
     # bm25:
 
     def score_bm25(self):
-
         """
         Computes the scores for all documents that answers the query
         """
-
         for query in self.queries: # one query at a time
             start_time = time.time() # latency time for each query in the bm25 ranking, starts here
             docs_scores_for_query=defaultdict(int) # docs_score = { doc1: score1, doc2: score2, ...} for all docs that answers the query
@@ -113,11 +105,9 @@ class Ranking:
 
             # Tokenize the query with the same tokenizer used on the documents:
             if self.tokenizer=='s':
-                simpleTokenizer=SimpleTokenizer()
-                query_terms=simpleTokenizer.simple_tokenizer(query)
+                query_terms = self.simpleTokenizer.simple_tokenizer(query)
             else:
-                improvedTokenizer=ImprovedTokenizer()
-                query_terms=improvedTokenizer.improved_tokenizer(query)
+                query_terms = self.improvedTokenizer.improved_tokenizer(query)
 
 
             for term in query_terms: # query terms already tokenized and processed
@@ -129,17 +119,15 @@ class Ranking:
             
             self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
             
-            query_latency_time=time.time()-start_time
+            query_latency_time=time.time() - start_time
             self.queries_latency[self.queries.index(query)+1] = query_latency_time # +1 because in the evaluation part the id for the queries starts at 1
            
         
 
     def get_queries_latency(self):
-
         """
         Returns the dictionary with latency of each query
         """
-        
         return self.queries_latency
         
     

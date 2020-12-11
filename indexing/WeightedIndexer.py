@@ -28,11 +28,9 @@ class WeightedIndexer:
 
     # lnc.ltc:
     def weighted_index_lnc_ltc(self):       
-
         """
         Calculates the lnc.ltc weights of each document
         """
-
         for term in self.inverted_index:
             
             docsWeigh={} # {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}  only with documents where the term occurs
@@ -65,11 +63,9 @@ class WeightedIndexer:
 
     # bm25:
     def weighted_index_bm25(self,  k = 1.2 , b = 0.75): # k is a value between 1.2 and 2.0  
-
         """
         Calculates the bm25 weights of each document
         """   
-
         for term in self.inverted_index: 
 
             docsWeigh=defaultdict(int) # {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}  only with documents where the term occurs
@@ -92,31 +88,25 @@ class WeightedIndexer:
 
 
     def get_weighted_index(self):
-
         """
         Returns the dictionary with the Weighted Index
         """
-
         return self.weighted_index             
                 
 
 
 
     def show_weighted_index(self):
-
         """
         Prints the Weighted Index
         """
-
         print(self.weighted_index) 
    
 
 
     def get_size_in_mem(self):
-
         """
         Returns the size of the dictionary with the Weighted Index
         """
-
         return getsizeof(self.weighted_index)
 

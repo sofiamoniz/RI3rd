@@ -18,18 +18,12 @@ class Evaluation:
         self.returned_relevances = collections.defaultdict(dict)
         self.queries_precision = {}
         self.queries_recall = {}
-        self.queries_f1 = {}
-        self.queries_average_precision = {}
-        self.queries_dcg = collections.defaultdict(int)
-        self.queries_ndcg = {}
 
 
     def mean_precision_recall(self):
-
         """
         Calculates the mean precision and mean recall 
         """
-
         for query_id in self.scores:
         
             tp_fn = 0
@@ -61,29 +55,29 @@ class Evaluation:
 
 
     def mean_f1(self):
-
         """
         Calculates the mean f-measure
         """
+        queries_f1 = {}
 
         for query_id in self.queries_precision:
             if self.queries_precision[query_id] != 0 and self.queries_recall != 0 : # if both precision and recall have a value
-                self.queries_f1[query_id] = 2 * ((self.queries_precision[query_id]*self.queries_recall[query_id])
+                queries_f1[query_id] = 2 * ((self.queries_precision[query_id]*self.queries_recall[query_id])
                                                      /(self.queries_precision[query_id]+self.queries_recall[query_id])) # f1 calculation
             else: # If precision and recall is 0
-                self.queries_f1[query_id] = 0
+                queries_f1[query_id] = 0
 
-        mean_f1 = statistics.mean(list(self.queries_f1.values())) # The mean of f1 of all queries
+        mean_f1 = statistics.mean(list(queries_f1.values())) # The mean of f1 of all queries
 
         print("Mean F-Measure -> ", mean_f1)
 
 
 
     def average_precision(self):
-
         """
         Calculates the average precision
         """
+        queries_average_precision = {}
 
         for query_id in self.scores:
 
@@ -107,34 +101,31 @@ class Evaluation:
             else:
                 average_precision = 0
 
-            self.queries_average_precision[query_id] = average_precision # Average precision for this query
-            
+            queries_average_precision[query_id] = average_precision # Average precision for this query
+        
+        return queries_average_precision
 
 
 
 
     def mean_average_precision(self): 
-
         """
         Calculates the mean average precision (MAP)
         """
-
-        self.average_precision()
+        queries_average_precision = self.average_precision()
 
         #print(self.queries_average_precision)
         # The MAP value is the mean of all average precision values, calculated previously
-        mean_average_precision = statistics.mean(list(self.queries_average_precision.values()))
+        mean_average_precision = statistics.mean(list(queries_average_precision.values()))
         
         print("MAP -> "+str(mean_average_precision))
 
 
 
     def get_returned_relevances(self):
-
         """
         Saves the relevances of the documents returned by the Retrieval Engine, for each query
         """
-
         for query_id in self.relevances:
             for doc,score in self.scores[query_id].items():
                 docs_relevance=self.returned_relevances[query_id]
@@ -147,28 +138,29 @@ class Evaluation:
 
 
     def dcg(self):
-
         """
         Calculates the discounted cumulative gain (dcg)
         """
-
         self.get_returned_relevances()
+
+        queries_dcg = collections.defaultdict(int)
 
         for query_id in self.returned_relevances:            
             count=0
             for doc,relevance in self.returned_relevances[query_id].items():       
                 count+=1 # Count is used as the indice for each document
-                self.queries_dcg[query_id] += relevance/math.log2(count+1) # dcg formula
+                queries_dcg[query_id] += relevance/math.log2(count+1) # dcg formula
            
+        return queries_dcg
 
 
     def mean_ndcg(self):
-
         """
         Calculates the mean normalized DCG (NDCG)
         """
+        queries_dcg = self.dcg()
 
-        self.dcg()
+        queries_ndcg = {}
 
         ideal_dcg = collections.defaultdict(int)
         relevances_ordered = {}
@@ -185,29 +177,25 @@ class Evaluation:
                 ideal_dcg[query_id] += relevance/math.log2(count+1)
                 if count==len(self.scores[query_id]): break # We only need the top N 
                 
-        for query_id in self.queries_dcg: 
+        for query_id in queries_dcg: 
             if ideal_dcg[query_id] != 0:
-                self.queries_ndcg[query_id] = self.queries_dcg[query_id]/ideal_dcg[query_id] # The NDCG is found by dividing the
-                                                                                             # DCG values by corresponding ideal values
+                queries_ndcg[query_id] = queries_dcg[query_id]/ideal_dcg[query_id] # The NDCG is found by dividing the
+                                                                                   # DCG values by corresponding ideal values
             else:
-                self.queries_ndcg[query_id] = 0
+                queries_ndcg[query_id] = 0
         
         #print(self.queries_ndcg)
-        mean_ndgc = statistics.mean(list(self.queries_ndcg.values()))
+        mean_ndgc = statistics.mean(list(queries_ndcg.values()))
         
         print("Mean NDGC -> "+str(mean_ndgc))
 
 
 
     def query_throughput(self,total_queries_processing,ranking_type):
-
         """
         Calculates the query throughput
         """
-
-        if ranking_type=="bm25": total_number_of_queries = len(list(self.scores.keys()))
-        else: total_number_of_queries = 2*len(list(self.scores.keys()))
-
+        total_number_of_queries = len(list(self.scores.keys()))
         qt = total_number_of_queries / total_queries_processing
         
         print("Query throughput -> "+str(round(qt))+ " queries per second")
@@ -215,11 +203,9 @@ class Evaluation:
 
 
     def mean_latency(self,queries_latency):
-
         """
         Calculates the mean latency
         """
-
         #print(queries_latency)
         median_latency = statistics.median(list(queries_latency.values())) # Calculates the median of all query latency values,
                                                                            # Previously calculated at Ranking.py

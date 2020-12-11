@@ -6,11 +6,10 @@ Autors: Alina Yanchuk, 89093
 """
 
 import sys, getopt
-from indexing.DocumentIndexer import DocumentIndexer
+from indexing.Indexer import Indexer
 
 ## Main class that runs the indexing part of the program ( gets the arguments from command line and starts the program )
 def main():
-
     """
     The program needs 3 arguments: type of tokenizer, file to read and type of weighted indexer/ranking.
 
@@ -24,7 +23,6 @@ def main():
 
     After running, the results files are stored in the "results" folder.
     """
-
     if len(sys.argv)!=4: 
         print ('Usage:\n\n   Index.py -s <fileToRead> -bm25\nor Index.py -i <fileToRead> -bm25\nor Index.py -s <fileToRead> -lnc.ltc\nor Index.py -i <fileToRead> -lnc.ltc \n\n Example: python3 Index.py -s metadata_2020-03-27.csv -bm25')
         sys.exit()
@@ -32,10 +30,8 @@ def main():
         print ('Usage:\n\n   Index.py -s <fileToRead> -bm25\nor Index.py -i <fileToRead> -bm25\nor Index.py -s <fileToRead> -lnc.ltc\nor Index.py -i <fileToRead> -lnc.ltc \n\n Example: python3 Index.py -s metadata_2020-03-27.csv -bm25')
         sys.exit()
 
-    indexer=DocumentIndexer(sys.argv[1],sys.argv[2],sys.argv[3])
-    #indexer.document_indexer()
-    indexer.test_spimi()
-
+    indexer = Indexer(sys.argv[1],sys.argv[2],sys.argv[3])
+    indexer.documents_indexer()
 
 
 if __name__ == '__main__':

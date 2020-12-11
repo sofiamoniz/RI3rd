@@ -43,8 +43,9 @@ def main():
     if "bm25" in index_file: ranking_type="bm25"   # type of ranking used in the weighted index ('bm25' or 'lnc.ltc')
     else: ranking_type="lnc.ltc"
  
-    search = RetrievalEngine(tokenizer,ranking_type,index_file,query_file,relevances_file,number_of_docs_to_return)
-    search.query_search()
+    retrieval_engine = RetrievalEngine(tokenizer,ranking_type,index_file,query_file,relevances_file,number_of_docs_to_return)
+    retrieval_engine.query_search()
+    retrieval_engine.evaluation()
 
 
 if __name__ == '__main__':

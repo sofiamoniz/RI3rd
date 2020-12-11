@@ -9,26 +9,23 @@ import re
 import Stemmer
 
 ## Class that acts as the Improved Tokenizer
-
 class ImprovedTokenizer:
 
     def __init__(self):
-        self.stemmer = Stemmer.Stemmer('english')
+        self.stemmer = Stemmer.Stemmer('english') # stemmer
+        self.stop_words = self.set_stop_words() # set of stop words
 
 
 
     def improved_tokenizer(self,received_string):
-
         """
         Returns an array with treated and tokenized terms (without numbers,repeated sequences of chars, treated URLs, len bigger than 3 (after PorterStemmer), and so on...)
         """
-
-        stop_words=self.set_stop_words() # Save the stop words, to be used, in a set
         word_tokens= re.sub('[^a-zA-Z]+', ' ', received_string).lower().split() # Transform the received string in tokens, by using the function word_tokenize from library ntlk
         filtered_sentence = [] 
         
         for w in word_tokens:
-            if w not in stop_words and len(w)>=3:
+            if w not in self.stop_words and len(w)>=3:
                 if self.is_website(w): #If the string is a website, it will be treated in order to give only the important part
                     parse_object = urlparse(w)
                     if (parse_object.netloc != ''): filtered_sentence.append(parse_object.netloc.split('.')[1]) # This condition is made to transfrom a website and give the user only the 
@@ -54,11 +51,9 @@ class ImprovedTokenizer:
 
 
     def set_stop_words(self): 
-
         """
         Reads and saves the stop words from the file required
         """
-
         with open ("indexing/snowball_stopwords_EN.txt", mode='r') as stop_words:
             stop_words_set = set([word.strip() for word in stop_words])
             
@@ -67,7 +62,6 @@ class ImprovedTokenizer:
 
 
     def characs_same(self,s) :
-
         """
         Verifies if a string has all the same chars (Eg. "aaaaa" )
         or 3 same sequential chars (Eg. "aaab")
@@ -78,7 +72,6 @@ class ImprovedTokenizer:
         
         So, we also exclude all the terms with repeated chars that are not present in this list.
         """
-
         n = len(s)
         sameChars=0
         repeatedChars=""
@@ -96,21 +89,17 @@ class ImprovedTokenizer:
 
 
     def contains_digit(self, w): 
-
         """
         Check if a given string contains digits
         """
-
         if any(char.isdigit() for char in w): return True
 
 
 
     def is_website(self, w):
-
         """
         Check if a given string is a website
         """
-
         if ('www' in w or 'http' in w or 'https' in w) and w.count('.') > 1: return True
 
 

@@ -22,7 +22,10 @@ class RetrievalEngine:
         self.query_file=query_file
         self.relevances_file=relevances_file
         self.top=number_of_docs_to_return # for each query
-
+        
+        self.scores_for_evaluation = {} # {query_1 : {doc_1: score , doc_2: score,...},...} 
+        self.queries_processiong = 0
+        self.queries_latency = []
         self.weighted_index=self.read_index_file()  # weighted_index = { "term" : [ idf, {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}],...  }
         self.queries=self.read_queries_file() # queries = [ query1, query2, query3,...]
         self.real_doc_ids=self.read_doc_ids_file() # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
@@ -30,8 +33,6 @@ class RetrievalEngine:
 
 
     def query_search(self):
-
-
         """
         Search the query terms and returns the retrieved ordered documents, based on the ranking type choosen. Writes results to files.
 
@@ -43,7 +44,6 @@ class RetrievalEngine:
                     |             
                 Retrieve the ranked documents
         """
-
         ranking = Ranking(self.tokenizer,self.queries,self.weighted_index)
         
         start_queries_processing = time.time()  # time to process the queries
@@ -54,12 +54,12 @@ class RetrievalEngine:
         else:
             ranking.score_bm25() # no need to weight the queries
 
-        queries_processing = time.time() - start_queries_processing
-        queries_latency = ranking.get_queries_latency() # latency of each query
+        self.queries_processing = time.time() - start_queries_processing
+        self.queries_latency = ranking.get_queries_latency() # latency of each query
+
 
         # Writes TOP N results (for each query) to file and creates dictionary with N scores for evaluation:
        
-        scores_for_evaluation = {} # {query_1 : {doc_1: score , doc_2: score,...},...} 
         with open("results/ranking_"+self.ranking_type+".txt", 'w') as file_ranking:
             file_ranking.write("***  TOP "+self.top+" RETURNED DOCUMENTS *** ")
             file_ranking.write("\n\nRanking: "+self.ranking_type)
@@ -67,7 +67,7 @@ class RetrievalEngine:
             file_ranking.write("\nTokenizer: "+"Improved\n" if self.tokenizer=='i' else "Simple\n")
             for i in range(0,len(self.queries)):
                 file_ranking.write("\n\n -> Query: "+self.queries[i]+"\n")
-                file_ranking.write("\nQuery latency: " + str(queries_latency[i+1])+" seconds\n")
+                file_ranking.write("\nQuery latency: " + str(self.queries_latency[i+1])+" seconds\n")
                 number_of_docs_returned=0 # TOP self.top
                 docs_scores={}
                 for doc,score in ranking.scores[i].items():
@@ -76,24 +76,26 @@ class RetrievalEngine:
                         docs_scores[self.real_doc_ids[doc]]=score 
                         file_ranking.write("\nDocument: "+self.real_doc_ids[doc]+"                  Score: "+str(score))
                         number_of_docs_returned=number_of_docs_returned+1
-                scores_for_evaluation[str(i+1)]=docs_scores
+                self.scores_for_evaluation[str(i+1)]=docs_scores
 
 
 
-        ## EVALUATION of results:
+    def evaluation(self):
 
         print("Evaluation TOP "+self.top+" :\n")
 
-        evaluation = Evaluation(self.relevances,scores_for_evaluation)
+        evaluation = Evaluation(self.relevances,self.scores_for_evaluation)
         
         evaluation.mean_precision_recall()
         evaluation.mean_f1()
         evaluation.mean_average_precision()
         evaluation.mean_ndcg()
-        evaluation.query_throughput(queries_processing,self.ranking_type)
-        evaluation.mean_latency(queries_latency)
+        evaluation.query_throughput(self.queries_processing,self.ranking_type)
+        evaluation.mean_latency(self.queries_latency)
 
         print("\nResults of Ranking in: "+"results/ranking_"+self.ranking_type+".txt\n")
+    
+
        
 
 
@@ -102,7 +104,6 @@ class RetrievalEngine:
 
 
     def read_index_file(self):
-
         """
         Reads the file with the Weighted Index to dictionary
         """
@@ -123,11 +124,9 @@ class RetrievalEngine:
 
 
     def read_queries_file(self):
-
         """
         Reads the file with the Queries to array
         """
-
         queries=[]
         file = open(self.query_file, 'r') 
         for line in file: 
@@ -139,11 +138,9 @@ class RetrievalEngine:
 
 
     def read_doc_ids_file(self):
-
         """
         Reads the file with the document id's mapping to dictionary
         """
-
         real_doc_ids={}
         with open('results/documentIDs.txt') as file_ids:
             real_doc_ids = json.load(file_ids)   # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
@@ -152,11 +149,9 @@ class RetrievalEngine:
 
 
     def read_relevances_file(self):
-
         """
         Reads the file with the document relevances for each query, to dictionary
         """
-
         relevances={}
         with open (self.relevances_file, mode='r') as file_to_read:
             for row in file_to_read:

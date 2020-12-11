@@ -15,11 +15,9 @@ class SimpleTokenizer:
 
 
     def simple_tokenizer(self, received_string):
-
         """
         Returns an array with lower cased terms only with alphabetic characters and len 3 or more
         """
-
         received_string=self.replace_non_alpha(received_string) # Replace non-alpha chars
         received_string=received_string.lower().split() # Put all chars to lower          
                   
@@ -29,11 +27,9 @@ class SimpleTokenizer:
    
 
     def replace_non_alpha(self,old_string): # Used to replace non-alpha chars
-    
         """
         Replaces the non-alpha characters of the text by space
         """
-
         new_string = re.sub('[^a-zA-Z]+', ' ', old_string) 
 
         return new_string
