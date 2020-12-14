@@ -22,8 +22,8 @@ def main():
 
     Examples of usage:
 
-        python3 Search.py results/simpleTokenizer/weightedIndex_bm25.txt queries.txt queries.relevance.filtered.txt 50
-        python3 Search.py results/simpleTokenizer/weightedIndex_lnc_ltc.txt queries.txt queries.relevance.filtered.txt 10
+        python3 Search.py models/simpleTokenizer/weightedIndex_bm25.txt queries.txt queries.relevance.filtered.txt 50
+        python3 Search.py models/simpleTokenizer/weightedIndex_lnc_ltc.txt queries.txt queries.relevance.filtered.txt 10
     """
 
     if len(sys.argv) != 5: 

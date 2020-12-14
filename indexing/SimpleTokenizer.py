@@ -14,7 +14,7 @@ class SimpleTokenizer:
         pass
 
 
-    def simple_tokenizer(self, received_string):
+    def tokenize(self, received_string):
         """
         Returns an array with lower cased terms only with alphabetic characters and len 3 or more
         """

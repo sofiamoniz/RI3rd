@@ -8,9 +8,9 @@ Autors: Alina Yanchuk, 89093
 from indexing.Results import Results
 from indexing.WeightedIndexer import WeightedIndexer
 from indexing.InvertedSpimi import InvertedSpimi
+from indexing.Corpus import CorpusReader
+import json
 import csv
-from indexing.ImprovedTokenizer import ImprovedTokenizer
-from indexing.SimpleTokenizer import SimpleTokenizer
 import time
 import os
 import psutil
@@ -24,8 +24,13 @@ class Indexer:
         self.input_file=input_file
         self.weighted_indexer_type=weighted_indexer_type
 
-        self.simp = SimpleTokenizer()
-        self.improv = ImprovedTokenizer()
+        self.corpus_reader = CorpusReader(self.input_file)
+        if self.tokenizer_type=="s":
+            from indexing.SimpleTokenizer import SimpleTokenizer
+            self.tokenizer = SimpleTokenizer()
+        else:
+            from indexing.ImprovedTokenizer import ImprovedTokenizer
+            self.tokenizer = ImprovedTokenizer()
         self.inverted_spimi = InvertedSpimi()
 
 
@@ -48,44 +53,58 @@ class Indexer:
         ## VARIABLES:
 
         total_docs = 0 # total number of documents
-        #total_tokens = 0 # total number of tokens
+        total_tokens = 0 # total number of tokens
         indexing_time = 0
         if self.weighted_indexer_type=="-lnc.ltc": self.weighted_indexer_type="-lnc_ltc"
         already_read = [] # Will store the title of documents already read
         real_doc_ids=[] # Will store the real ID of each document   
         doc_ids = {} # Will store the mapping between the real IDs and the generated ones
-        
+        documents_len = {}
 
         ## READ EACH DOCUMENT, TOKENIZE IT AND INDEX:
 
         start_time = time.time()
 
-        with open (self.input_file, mode='r') as csv_to_read:
-            csv_reader=csv.DictReader(csv_to_read)
-            for row in csv_reader: # Reads, Tokenizes and Index one document at time
+        while True:
+            data = self.corpus_reader.nextChunk()
+            if data is None:
+                break
+            for document in data:  # each document
                 title_abstract = ""
-                document_tokens = []
-                if row['abstract'] != "":
-                    title = row['title'] 
-                    if title not in already_read: # Verifies if the document was already read
-                        if row['cord_uid'] == "": real_id=row['doi']
-                        else: real_id = row['cord_uid']   
-                        already_read.append(title) # Add to the list that has the documents that were already read
-                        title_abstract = row['title'] + " " + row['abstract'] 
-                        if self.tokenizer_type == '-s': # The user chose to use the simpleTokenizer
-                            document_tokens = self.simp.simple_tokenizer(title_abstract)
-                        else: # The user chose to use the improvedTokenizer
-                            document_tokens = self.improv.improved_tokenizer(title_abstract)
+                real_id, title, abstract = document[0], document[1], document[2]
+                title_abstract = title + abstract
+                document_tokens = self.tokenizer.tokenize(title_abstract) # tokenize
+                total_docs += 1 # Will also be used as generated ID for this document 
+                total_tokens += len(document_tokens) 
+                documents_len[total_docs] = len(document_tokens)
+                doc_ids[total_docs] = real_id # Generated ID: real ID
 
-                        total_docs += 1 # Will also be used as generated ID for this document 
-                        #total_tokens += len(document_tokens) 
-                        doc_ids[total_docs] = real_id # Generated ID: real ID
-
-                        self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
+                self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
         
         self.inverted_spimi.merge_blocks() 
         #self.inverted_spimi.final_inverted_index()
         #self.inverted_spimi.show_inverted_index()
+
+
+
+
+        ## SÓ PARA TESTAR/MELHORAR O WEIGHTED INDEX, DEPOIS APAGAR:
+
+        with open("models/documentIDs.txt",'w') as file_ids:
+            json.dump(doc_ids, file_ids)
+
+        inverted_index = self.inverted_spimi.final_inverted_index()
+
+        weighted_indexer = WeightedIndexer(total_docs, inverted_index , documents_len, total_tokens)  ## Weighted Indexer
+        if(self.weighted_indexer_type=="-bm25"):    # BM25
+            weighted_indexer.weighted_index_bm25()
+        else:
+            weighted_indexer.weighted_index_lnc_ltc()  # LNC.LTC
+        weighted_index=weighted_indexer.get_weighted_index()
+       
+        with open("models/improvedTokenizer/weightedIndex_bm25.txt", 'w') as file_weighted_index:
+            for term in weighted_index:
+                file_weighted_index.write(term+";"+str(weighted_index[term][0])+";"+json.dumps(weighted_index[term][1])+"\n")
 
         indexing_time=time.time()-start_time
 
@@ -102,12 +121,7 @@ class Indexer:
             doc_ids[generated_id]=real_doc_ids[i]
         indexer.sort_inverted_index() # All documents have been indexed and the final ordered Inverted Indexer created!
         inverted_index=indexer.get_inverted_index()
-        weighted_indexer = WeightedIndexer(total_docs, inverted_index ,indexer.get_doc_len(), total_terms)  ## Weighted Indexer
-        if(self.weighted_indexer_type=="-bm25"):    # BM25
-            weighted_indexer.weighted_index_bm25()
-        else:
-            weighted_indexer.weighted_index_lnc_ltc()  # LNC.LTC
-        weighted_index=weighted_indexer.get_weighted_index()
+        
         
         ## Results:
         results = Results(inverted_index,doc_ids,self.tokenizer_type,self.input_file,weighted_index,self.weighted_indexer_type[1:]) ## Results ( writes informations to files )
@@ -120,12 +134,12 @@ class Indexer:
             print("\n    Tokenizer used: Simple     Ranking Method: "+self.weighted_indexer_type[1:]+"\n"
                     +"\n--- Indexation time:  %s seconds." % (round(indexing_time,3))
                     +"\n--- Size in memory used by the dictionary structure:  %s %s." % (round(memory_dic[0],3), memory_dic[1])
-                    + "\n--- File with the Weighted Index: results/simpleTokenizer/weightedIndex_"+self.weighted_indexer_type[1:]+".txt")
+                    + "\n--- File with the Weighted Index: models/simpleTokenizer/weightedIndex_"+self.weighted_indexer_type[1:]+".txt")
         else:
             print("\n    Tokenizer used: Improved     Ranking Method: "+self.weighted_indexer_type[1:]+"\n"
                     +"\n--- Indexation time:  %s seconds." % (round(indexing_time,3))
                     +"\n--- Size in memory used by the dictionary structure:  %s %s." % (round(memory_dic[0],3), memory_dic[1])
-                    + "\n--- File with the Weighted Index: results/improvedTokenizer/weightedIndex_"+self.weighted_indexer_type[1:]+".txt")
+                    + "\n--- File with the Weighted Index: models/improvedTokenizer/weightedIndex_"+self.weighted_indexer_type[1:]+".txt")
         """
         
 

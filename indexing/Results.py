@@ -42,10 +42,10 @@ class Results:
         """
 
         if(self.tokenizer_type=="-s"):
-            with open("results/simpleTokenizer/invertedIndex_"+self.file_name[:-4]+".txt",'w') as file_index:
+            with open("models/simpleTokenizer/invertedIndex.txt",'w') as file_index:
                 json.dump(self.inverted_index,file_index)
         else:
-            with open("results/improvedTokenizer/invertedIndex_"+self.file_name[:-4]+".txt",'w') as file_index:
+            with open("models/improvedTokenizer/invertedIndex.txt",'w') as file_index:
                 json.dump(self.inverted_index,file_index)
 
         ## To quickly load the file from disk to a dictionary in memory do:
@@ -74,7 +74,7 @@ class Results:
 
         """
 
-        with open("results/documentIDs.txt",'w') as file_ids:
+        with open("models/documentIDs.txt",'w') as file_ids:
             json.dump(self.docsIds, file_ids)
 
         ## To quickly load the file from disk to a dictionary in memory do:
@@ -106,11 +106,11 @@ class Results:
         """
 
         if(self.tokenizer_type=="-s"):
-            with open("results/simpleTokenizer/weightedIndex_"+self.weighted_index_type+".txt", 'w') as file_weighted_index:
+            with open("models/simpleTokenizer/weightedIndex_"+self.weighted_index_type+".txt", 'w') as file_weighted_index:
                 for term in self.weighted_index:
                     file_weighted_index.write(term+";"+str(self.weighted_index[term][0])+";"+json.dumps(self.weighted_index[term][1])+"\n")
         else:
-            with open("results/improvedTokenizer/weightedIndex_"+self.weighted_index_type+".txt", 'w') as file_weighted_index:
+            with open("models/improvedTokenizer/weightedIndex_"+self.weighted_index_type+".txt", 'w') as file_weighted_index:
                 for term in self.weighted_index:
                     file_weighted_index.write(term+";"+str(self.weighted_index[term][0])+";"+json.dumps(self.weighted_index[term][1])+"\n")
 

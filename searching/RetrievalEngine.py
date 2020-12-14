@@ -142,7 +142,7 @@ class RetrievalEngine:
         Reads the file with the document id's mapping to dictionary
         """
         real_doc_ids={}
-        with open('results/documentIDs.txt') as file_ids:
+        with open('models/documentIDs.txt') as file_ids:
             real_doc_ids = json.load(file_ids)   # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
         
         return real_doc_ids

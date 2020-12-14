@@ -17,7 +17,7 @@ class ImprovedTokenizer:
 
 
 
-    def improved_tokenizer(self,received_string):
+    def tokenize(self,received_string):
         """
         Returns an array with treated and tokenized terms (without numbers,repeated sequences of chars, treated URLs, len bigger than 3 (after PorterStemmer), and so on...)
         """

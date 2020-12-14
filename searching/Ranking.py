@@ -16,12 +16,16 @@ import time
 class Ranking:
 
     def __init__(self,tokenizer,queries,weighted_index):
-        self.tokenizer = tokenizer
+        self.tokenizer_type = tokenizer
         self.queries = queries
         self.weighted_index = weighted_index
 
-        self.simpleTokenizer = SimpleTokenizer()
-        self.improvedTokenizer = ImprovedTokenizer()
+        if self.tokenizer_type=="s":
+            from indexing.SimpleTokenizer import SimpleTokenizer
+            self.tokenizer = SimpleTokenizer()
+        else:
+            from indexing.ImprovedTokenizer import ImprovedTokenizer
+            self.tokenizer = ImprovedTokenizer()
         self.weighted_queries = [] # only for lnc.ltc
         self.scores = []
         self.queries_latency = {}
@@ -41,10 +45,8 @@ class Ranking:
             weighted_query=defaultdict(int)    # weighted_query = { "term1": weight_of_term1_in_query, ...}   for all terms in the query
 
             # Tokenize the query with the same tokenizer used on the documents:
-            if self.tokenizer=='s':
-                query_terms = self.simpleTokenizer.simple_tokenizer(query)
-            else:
-                query_terms = self.improvedTokenizer.improved_tokenizer(query)
+            
+            query_terms = self.tokenizer.tokenize(query)
 
             for term in query_terms: # query terms already tokenized and processed
                 weighted_query[term] = weighted_query[term]+1 # tf on query
@@ -104,10 +106,8 @@ class Ranking:
             query_length=0
 
             # Tokenize the query with the same tokenizer used on the documents:
-            if self.tokenizer=='s':
-                query_terms = self.simpleTokenizer.simple_tokenizer(query)
-            else:
-                query_terms = self.improvedTokenizer.improved_tokenizer(query)
+            
+            query_terms = self.tokenizer.tokenize(query)
 
 
             for term in query_terms: # query terms already tokenized and processed

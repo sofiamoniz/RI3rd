@@ -15,7 +15,7 @@ class InvertedSpimi:
 
     def __init__(self):
         self.block_number = 0
-        self.index_file = "results/spimi/final_index_file/index.txt"
+        self.index_file = "models/spimi/final_index_file/index.txt"
         self.inverted_index = {}
         self.block_files=[]
         self.term_posting_lists_dic={} #dictionary with term-postings list
@@ -44,7 +44,7 @@ class InvertedSpimi:
         if sys.getsizeof(self.term_posting_lists_dic) > block_size_limit:
             self.block_number += 1 #count block number 
             terms = self.sort_terms(self.term_posting_lists_dic) #sort the terms
-            block_file = "results/spimi/index_blocks/block_"+str(self.block_number)
+            block_file = "models/spimi/index_blocks/block_"+str(self.block_number)
             self.block_files.append(self.write_block_to_disk(terms, self.term_posting_lists_dic, block_file)) #write to disk
                                                                                                                     #and save block files
                                                                                                                     #in list to merge them later
@@ -130,7 +130,7 @@ class InvertedSpimi:
                         posting[doc_id]=1
                         freq_posting[0]=freq_posting[0]+1
 
-        #print(self.inverted_index)
+        return self.inverted_index
 
 
 
@@ -178,3 +178,6 @@ class InvertedSpimi:
         Prints the Inverted Index
         """
         print(self.inverted_index) 
+
+    
+  
