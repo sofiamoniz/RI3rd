@@ -19,6 +19,7 @@ class InvertedSpimi:
         self.inverted_index = {}
         self.block_files=[]
         self.term_posting_lists_dic={} #dictionary with term-postings list
+        self.term_position_dict={} #Will store {term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},...}
         
 
     def spimi(self, document_tokens, document_id, block_size_limit = 150000): #ir pelo block_size_limit ou outra cena mais eficiente, mas pareceu-me o melhor até agora
@@ -32,7 +33,7 @@ class InvertedSpimi:
         We count the blocks so that we can create a file for each block with the number of the present block.
         Then these blocks will be merged into one.
         """
-                
+
         for term in document_tokens: #get terms of  that document - tokens are processed one by one
             if term not in self.term_posting_lists_dic:
                 postings_list = self.add_to_dict(self.term_posting_lists_dic, term) #When a term occurs for the first time, it is added 
@@ -94,11 +95,11 @@ class InvertedSpimi:
                     block_files.pop(first_index)
                     lines.pop(first_index)
                     
-        ## self.get_inverted_index() #Now, once we have the index file (the result of merging the blocks)
-                                        #We can create the inverted index
-                                        #Note - the index file has, per line, term - docs in which the term occurs
-                                        #Ex : abaecin 11904 11904 11904 11904 11904 11904 11904 11904
-                                        #It means that term "abaecin" has a term frequency of 8 in document 11904
+        #Now, once we have the index file (the result of merging the blocks)
+        #We can create the inverted index
+        #Note - the index file has, per line, (term - docs) in which the term occurs
+        #Ex : abaecin 11904 11904 11904 11904 11904 11904 11904 11904
+        #It means that term "abaecin" has a term frequency of 8 in document 11904
 
 
     def final_inverted_index(self):
@@ -132,7 +133,37 @@ class InvertedSpimi:
 
         return self.inverted_index
 
+    def build_positions(self,document_tokens, document_id):
+        #Isto podia ser chamado dentro da função spimi, não sei como é q o stor gostará mais xD
+        count=0
+        term_position = 0
+        for term in document_tokens: #get terms of  that document - tokens are processed one by one
+            term_position += 1
+            if term not in self.term_position_dict: #If the term still doesn't exist
+                self.term_position_dict[term] = {document_id:[term_position]} #we add it to the dictionary, with the
+                                                                            #correspondent doc_id and term_position
 
+            else:
+                #if the term already exists, we have to do one of the follow:
+                # 1- if that term already appeared in that same document_id, we have to update the term_position list
+                # 2 - if that term is appearing in a new document_id, we have to create this new entry
+                tmp_list=[]
+                for doc in self.term_position_dict[term]: 
+                    #doc -> doc id
+                    #self.term_position_dict[term][a] -> positions list for that term
+                    if document_id == doc: #isto está certo                        
+                        tmp_list = self.term_position_dict[term][doc]
+                        #print(term_position)
+                        tmp_list.append(term_position)
+                        self.term_position_dict[term][doc] = tmp_list
+
+                        #tmp_dict = self.term_position_dict[term]
+                    else:
+                        tmp_list = [term_position]
+
+                self.term_position_dict[term][document_id] = tmp_list
+
+        #print(self.term_position_dict)
 
 
 ## AUXILIAR FUNCTIONS:
@@ -178,6 +209,12 @@ class InvertedSpimi:
         Prints the Inverted Index
         """
         print(self.inverted_index) 
+
+    def get_term_positions_dictionary(self):
+        """
+        Returns the dictionary for term-position in each document
+        """
+        return self.term_position_dict
 
     
   

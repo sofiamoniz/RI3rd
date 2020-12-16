@@ -80,16 +80,16 @@ class Indexer:
                 doc_ids[total_docs] = real_id # Generated ID: real ID
 
                 self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
-        
-        self.inverted_spimi.merge_blocks() 
+                #self.inverted_spimi.build_positions(document_tokens,total_docs)
+        #self.inverted_spimi.merge_blocks() 
         #self.inverted_spimi.final_inverted_index()
         #self.inverted_spimi.show_inverted_index()
+        
+        self.inverted_spimi.build_positions(["ola","susu","ola","vida"],1)
+        self.inverted_spimi.build_positions(["ola","vida"],2)
 
-
-
-
+        """
         ## SÓ PARA TESTAR/MELHORAR O WEIGHTED INDEX, DEPOIS APAGAR:
-
         with open("models/documentIDs.txt",'w') as file_ids:
             json.dump(doc_ids, file_ids)
 
@@ -101,17 +101,16 @@ class Indexer:
         else:
             weighted_indexer.weighted_index_lnc_ltc()  # LNC.LTC
         weighted_index=weighted_indexer.get_weighted_index()
-       
+        self.store_term_positions(weighted_index)
         with open("models/improvedTokenizer/weightedIndex_bm25.txt", 'w') as file_weighted_index:
             for term in weighted_index:
                 file_weighted_index.write(term+";"+str(weighted_index[term][0])+";"+json.dumps(weighted_index[term][1])+"\n")
 
         indexing_time=time.time()-start_time
-
-
+        """
         ## RESULTS:
         
-        print("Indexing time: "+str(indexing_time))
+        #print("Indexing time: "+str(indexing_time))
 
         """
         indexer = InvertedIndexer(total_docs) # Inverted Indexer
@@ -142,6 +141,13 @@ class Indexer:
                     + "\n--- File with the Weighted Index: models/improvedTokenizer/weightedIndex_"+self.weighted_indexer_type[1:]+".txt")
         """
         
+    def store_term_positions(self, weighted_index):
+        """
+        Will write the resulting index to file using the following format (one term per line):
+        term:idf;doc_id:term_weight:pos1,pos2,pos3,…;doc_id:term_weight:pos1,pos2,pos3,…
+        """
+        term_position_dict = self.inverted_spimi.get_term_positions_dictionary()
+        print(term_position_dict)
 
 
 ## AUXILIAR FUNCTIONS:
