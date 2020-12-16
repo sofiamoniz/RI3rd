@@ -19,7 +19,6 @@ class InvertedSpimi:
         self.inverted_index = {}
         self.block_files = []
         self.term_posting_lists_dic = {} #dictionary with term-postings list
-        self.term_position_dict = {} #Will store {term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},...}
         
 
     def spimi(self, document_tokens, document_id, block_size_limit = 150000): #ir pelo block_size_limit ou outra cena mais eficiente, mas pareceu-me o melhor até agora
@@ -41,29 +40,12 @@ class InvertedSpimi:
                                                                                     #to the dictionary and a new postings list is created
             else:
                 postings_list = self.get_postings_list(self.term_posting_lists_dic,term) #returns this postings list for subsequent occurrences of the term
-            self.add_to_postings_list(postings_list,document_id) #add to postings list
-
-            ## Cálculo das posições:
-            term_position += 1
-            if term not in self.term_position_dict: #If the term still doesn't exist
-                self.term_position_dict[term] = {document_id:[term_position]} #we add it to the dictionary, with the
-                                                                            #correspondent doc_id and term_position
-            else:
-                #if the term already exists, we have to do one of the follow:
-                # 1- if that term already appeared in that same document_id, we have to update the term_position list
-                # 2 - if that term is appearing in a new document_id, we have to create this new entry
-                tmp_list=[]
-                for doc in self.term_position_dict[term]: 
-                    #doc -> doc id
-                    #self.term_position_dict[term][a] -> positions list for that term
-                    if document_id == doc:                      
-                        tmp_list = self.term_position_dict[term][doc]
-                        tmp_list.append(term_position)
-                    else:
-                        tmp_list = [term_position]
-
-                self.term_position_dict[term][document_id] = tmp_list
             
+            self.add_to_postings_list(postings_list,document_id,term_position) #add to postings list
+            
+            term_position += 1
+            
+
         if sys.getsizeof(self.term_posting_lists_dic) > block_size_limit:
             self.block_number += 1 #count block number 
             terms = self.sort_terms(self.term_posting_lists_dic) #sort the terms
@@ -172,11 +154,11 @@ class InvertedSpimi:
         """
         return dictionary[term]
 
-    def add_to_postings_list(self, postings_list, document_id):
+    def add_to_postings_list(self, postings_list, document_id, term_position):
         """
         Adds document id to the postings list
         """
-        postings_list.append(document_id)
+        postings_list.append((document_id,term_position))
 
     def sort_terms(self,dictionary):
         """

@@ -81,7 +81,7 @@ class Indexer:
 
                 self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
         print(self.inverted_spimi.term_position_dict)
-        #self.inverted_spimi.merge_blocks() 
+        self.inverted_spimi.merge_blocks() 
         #self.inverted_spimi.final_inverted_index()
         #self.inverted_spimi.show_inverted_index()
         
