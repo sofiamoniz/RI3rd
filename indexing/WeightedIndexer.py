@@ -17,14 +17,21 @@ class WeightedIndexer:
         self.total_docs=total_docs
         self.inverted_index=inverted_index
         self.document_len=document_len
-        self.dl = [document_len[doc_id] for doc_id in document_len]
-        self.avgdl = sum(self.dl) / total_terms
-        
+        self.total_terms=total_terms
+        self.avgdl = 0
+        #self.dl = [document_len[doc_id] for doc_id in document_len]
+        #self.avgdl = self.calc_avgdl() #sum(self.dl) /= total_terms        
         self.weighted_index={}
         
     ## inverted_index = { "term" : [ doc_freq, {"doc1":occurrences_of_term_in_doc1, "doc2": occurrences_of_term_in_doc2,...}],...  }
     ## weighted_index = { "term" : [ idf, {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}],...  }
     
+    def calc_avgdl(self):
+        count=0
+        for doc_id in self.document_len:
+            self.avgdl += self.document_len[doc_id]
+            count+=1
+        self.avgdl /= count
 
     # lnc.ltc:
     def weighted_index_lnc_ltc(self):       
@@ -66,12 +73,13 @@ class WeightedIndexer:
         """
         Calculates the bm25 weights of each document
         """   
+
+        self.calc_avgdl() #calculates avgdl only when calling bm25
         for term in self.inverted_index: 
 
             docsWeigh=defaultdict(int) # {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}  only with documents where the term occurs
             idf_docsWeight=[] # [idf,docWeights_with_bm25]  
                               # In python, the order of an array is mantained, so no problem!
-              
             idf = math.log10(self.total_docs/self.inverted_index[term][0])
             idf_docsWeight.append(idf)
 
@@ -80,6 +88,7 @@ class WeightedIndexer:
                 docsWeigh[doc_id] += (idf * tf * (k+1)
                       / (tf + k * (1 - b + b * self.document_len[doc_id] / self.avgdl))) # bm25 formula
            
+
             idf_docsWeight.append(docsWeigh)
 
             self.weighted_index[term]=idf_docsWeight

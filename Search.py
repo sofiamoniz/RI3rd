@@ -27,7 +27,7 @@ def main():
     """
 
     if len(sys.argv) != 5: 
-        print ("\nUsage:\n\n   Search.py <weightedIndexFile> <queryFile> <queryRelevancesFile> <numberOfDocsToReturn> \n\n Example: Search.py results/simpleTokenizer/weightedIndex_bm25.txt queries.txt queries.relevance.filtered.txt 50")
+        print ("\nUsage:\n\n   Search.py <weightedIndexFile> <queryFile> <queryRelevancesFile> <numberOfDocsToReturn> \n\n Example: Search.py models/improvedTokenizer/weightedIndex_bm25.txt queries.txt queries.relevance.filtered.txt 50")
         sys.exit()
     elif not float(sys.argv[4]).is_integer():
         print("Invalid number of document to return per query! Must be an integer.")
