@@ -156,8 +156,6 @@ class InvertedSpimi:
                         #print(term_position)
                         tmp_list.append(term_position)
                         self.term_position_dict[term][doc] = tmp_list
-
-                        #tmp_dict = self.term_position_dict[term]
                     else:
                         tmp_list = [term_position]
 
