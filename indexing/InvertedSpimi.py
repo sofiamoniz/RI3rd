@@ -17,9 +17,9 @@ class InvertedSpimi:
         self.block_number = 0
         self.index_file = "models/spimi/final_index_file/index.txt"
         self.inverted_index = {}
-        self.block_files=[]
-        self.term_posting_lists_dic={} #dictionary with term-postings list
-        self.term_position_dict={} #Will store {term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},...}
+        self.block_files = []
+        self.term_posting_lists_dic = {} #dictionary with term-postings list
+        self.term_position_dict = {} #Will store {term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},term: {doc_id:[pos1,pos2,...], doc_id:[pos1,pos2,...]},...}
         
 
     def spimi(self, document_tokens, document_id, block_size_limit = 150000): #ir pelo block_size_limit ou outra cena mais eficiente, mas pareceu-me o melhor até agora
@@ -33,14 +33,36 @@ class InvertedSpimi:
         We count the blocks so that we can create a file for each block with the number of the present block.
         Then these blocks will be merged into one.
         """
-
+        term_position = 0
         for term in document_tokens: #get terms of  that document - tokens are processed one by one
+
             if term not in self.term_posting_lists_dic:
                 postings_list = self.add_to_dict(self.term_posting_lists_dic, term) #When a term occurs for the first time, it is added 
                                                                                     #to the dictionary and a new postings list is created
             else:
                 postings_list = self.get_postings_list(self.term_posting_lists_dic,term) #returns this postings list for subsequent occurrences of the term
             self.add_to_postings_list(postings_list,document_id) #add to postings list
+
+            ## Cálculo das posições:
+            term_position += 1
+            if term not in self.term_position_dict: #If the term still doesn't exist
+                self.term_position_dict[term] = {document_id:[term_position]} #we add it to the dictionary, with the
+                                                                            #correspondent doc_id and term_position
+            else:
+                #if the term already exists, we have to do one of the follow:
+                # 1- if that term already appeared in that same document_id, we have to update the term_position list
+                # 2 - if that term is appearing in a new document_id, we have to create this new entry
+                tmp_list=[]
+                for doc in self.term_position_dict[term]: 
+                    #doc -> doc id
+                    #self.term_position_dict[term][a] -> positions list for that term
+                    if document_id == doc:                      
+                        tmp_list = self.term_position_dict[term][doc]
+                        tmp_list.append(term_position)
+                    else:
+                        tmp_list = [term_position]
+
+                self.term_position_dict[term][document_id] = tmp_list
             
         if sys.getsizeof(self.term_posting_lists_dic) > block_size_limit:
             self.block_number += 1 #count block number 
@@ -133,32 +155,7 @@ class InvertedSpimi:
 
         return self.inverted_index
 
-    def build_positions(self,document_tokens, document_id):
-        #Isto podia ser chamado dentro da função spimi, não sei como é q o stor gostará mais xD
-        term_position = 0
-        for term in document_tokens: #get terms of  that document - tokens are processed one by one
-            term_position += 1
-            if term not in self.term_position_dict: #If the term still doesn't exist
-                self.term_position_dict[term] = {document_id:[term_position]} #we add it to the dictionary, with the
-                                                                            #correspondent doc_id and term_position
 
-            else:
-                #if the term already exists, we have to do one of the follow:
-                # 1- if that term already appeared in that same document_id, we have to update the term_position list
-                # 2 - if that term is appearing in a new document_id, we have to create this new entry
-                tmp_list=[]
-                for doc in self.term_position_dict[term]: 
-                    #doc -> doc id
-                    #self.term_position_dict[term][a] -> positions list for that term
-                    if document_id == doc:                      
-                        tmp_list = self.term_position_dict[term][doc]
-                        tmp_list.append(term_position)
-                    else:
-                        tmp_list = [term_position]
-
-                self.term_position_dict[term][document_id] = tmp_list
-
-        #print(self.term_position_dict)
 
 ## AUXILIAR FUNCTIONS:
 

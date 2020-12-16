@@ -79,8 +79,8 @@ class Indexer:
                 documents_len[total_docs] = len(document_tokens)
                 doc_ids[total_docs] = real_id # Generated ID: real ID
 
-                #self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
-                self.inverted_spimi.build_positions(document_tokens,total_docs)
+                self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
+        print(self.inverted_spimi.term_position_dict)
         #self.inverted_spimi.merge_blocks() 
         #self.inverted_spimi.final_inverted_index()
         #self.inverted_spimi.show_inverted_index()
@@ -109,12 +109,12 @@ class Indexer:
         with open("models/improvedTokenizer/weightedIndex_bm25.txt", 'w') as file_weighted_index:
             for term in weighted_index:
                 file_weighted_index.write(term+";"+str(weighted_index[term][0])+";"+json.dumps(weighted_index[term][1])+"\n")
-
-        indexing_time=time.time()-start_time
         """
-        ## RESULTS:
+        indexing_time=time.time()-start_time
         
-        #print("Indexing time: "+str(indexing_time))
+        ##RESULTS:
+        
+        print("Indexing time: "+str(indexing_time))
 
         """
         indexer = InvertedIndexer(total_docs) # Inverted Indexer
