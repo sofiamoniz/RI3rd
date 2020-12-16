@@ -151,18 +151,15 @@ class InvertedSpimi:
                 for doc in self.term_position_dict[term]: 
                     #doc -> doc id
                     #self.term_position_dict[term][a] -> positions list for that term
-                    if document_id == doc: #isto está certo                        
+                    if document_id == doc:                      
                         tmp_list = self.term_position_dict[term][doc]
-                        #print(term_position)
                         tmp_list.append(term_position)
-                        self.term_position_dict[term][doc] = tmp_list
                     else:
                         tmp_list = [term_position]
 
                 self.term_position_dict[term][document_id] = tmp_list
 
         #print(self.term_position_dict)
-
 
 ## AUXILIAR FUNCTIONS:
 

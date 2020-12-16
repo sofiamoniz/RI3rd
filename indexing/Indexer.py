@@ -79,14 +79,18 @@ class Indexer:
                 documents_len[total_docs] = len(document_tokens)
                 doc_ids[total_docs] = real_id # Generated ID: real ID
 
-                self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
-                #self.inverted_spimi.build_positions(document_tokens,total_docs)
+                #self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
+                self.inverted_spimi.build_positions(document_tokens,total_docs)
         #self.inverted_spimi.merge_blocks() 
         #self.inverted_spimi.final_inverted_index()
         #self.inverted_spimi.show_inverted_index()
         
-        self.inverted_spimi.build_positions(["ola","susu","ola","vida"],1)
-        self.inverted_spimi.build_positions(["ola","vida"],2)
+        #DESCOMENTAR PARA VER TUDO - demora muito why?
+        #self.inverted_spimi.get_term_positions_dictionary() 
+        
+        #Exemplos pequenos
+        #self.inverted_spimi.build_positions(["ola","susu","ola","vida"],1)
+        #self.inverted_spimi.build_positions(["ola","vida"],2)
 
         """
         ## SÓ PARA TESTAR/MELHORAR O WEIGHTED INDEX, DEPOIS APAGAR:
