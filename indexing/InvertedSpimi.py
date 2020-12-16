@@ -135,7 +135,6 @@ class InvertedSpimi:
 
     def build_positions(self,document_tokens, document_id):
         #Isto podia ser chamado dentro da função spimi, não sei como é q o stor gostará mais xD
-        count=0
         term_position = 0
         for term in document_tokens: #get terms of  that document - tokens are processed one by one
             term_position += 1
