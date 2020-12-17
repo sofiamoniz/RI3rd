@@ -62,6 +62,7 @@ class InvertedSpimi:
         """
         Merge the file blocks into one singular block
         """
+
         block_files = [open(block_file) for block_file in self.block_files] #List with all block files to be readen in sequencial order
         lines = [block_file.readline()[:-1] for block_file in block_files] #List with the first line of each block file (-1 deletes the last line that is "")
         last_term = "" #String created to save the last readen term
@@ -80,9 +81,11 @@ class InvertedSpimi:
                                                     #order - that is the minimum value of the list, once we ordered the terms before
                 line=lines[first_index]
                 curr_term = line.split()[0]
-                curr_postings = " ".join(map(str, sorted(list(map(int, line.split()[1:])))))
-                #Now we need to compare the term in the current line to the last readen term
+                tuples_list = list(map(eval, list(line.split()[1:])))
+                curr_postings = " ".join(map(str, sorted(tuples_list, key=lambda x: x[0])))
+                #curr_postings = " ".join(map(str, sorted(list(map(int, line.split()[1:])))))
 
+                #Now we need to compare the term in the current line to the last readen term
                 if (last_term != curr_term): #if they are different, we need to create in the index a new line with the new
                                             #word, and the correspondent postings that are in the block file we are reading
                     index_file.write("\n%s %s" % (curr_term, curr_postings))
@@ -101,9 +104,10 @@ class InvertedSpimi:
                     
         #Now, once we have the index file (the result of merging the blocks)
         #We can create the inverted index
-        #Note - the index file has, per line, (term - docs) in which the term occurs
-        #Ex : abaecin 11904 11904 11904 11904 11904 11904 11904 11904
-        #It means that term "abaecin" has a term frequency of 8 in document 11904
+        #Note - the index file has, per line, "term  (doc_id,pos)" in which the term occurs
+        #Ex : aba (12126, 111) (12126, 140)
+        #It means that term "abaecin" has a term frequency of 2 in document 12126, appearing
+        #In the positions 111 and 140 of that document
 
 
     def final_inverted_index(self):
@@ -158,7 +162,8 @@ class InvertedSpimi:
         """
         Adds document id to the postings list
         """
-        postings_list.append((document_id,term_position))
+        tmp_str=str(document_id)+','+str(term_position)
+        postings_list.append(tmp_str)
 
     def sort_terms(self,dictionary):
         """
