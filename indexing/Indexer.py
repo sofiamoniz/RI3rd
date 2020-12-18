@@ -28,11 +28,11 @@ class Indexer:
         if self.tokenizer_type=="s":
             from indexing.SimpleTokenizer import SimpleTokenizer
             self.tokenizer = SimpleTokenizer()
+            self.inverted_spimi = InvertedSpimi("models/simpleTokenizer/")
         else:
             from indexing.ImprovedTokenizer import ImprovedTokenizer
             self.tokenizer = ImprovedTokenizer()
-        self.inverted_spimi = InvertedSpimi()
-
+            self.inverted_spimi = InvertedSpimi("models/improvedTokenizer/")
 
 
     def documents_indexer(self):
@@ -79,9 +79,9 @@ class Indexer:
                 documents_len[total_docs] = len(document_tokens)
                 doc_ids[total_docs] = real_id # Generated ID: real ID
 
-                self.inverted_spimi.spimi(document_tokens,total_docs) # Supostamente, indexamos cada documento tokenizado aqui ou o crlh xD
-        #print(self.inverted_spimi.term_position_dict)
-        self.inverted_spimi.merge_blocks() 
+                self.inverted_spimi.spimi(document_tokens,total_docs) 
+                
+        #self.inverted_spimi.merge_blocks() 
         #self.inverted_spimi.final_inverted_index()
         #self.inverted_spimi.show_inverted_index()
 
