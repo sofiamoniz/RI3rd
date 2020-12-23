@@ -22,7 +22,7 @@ class InvertedSpimi:
         self.block_number = 0 # each block is a directory
         self.segmentation = [('a','f'),('g','p'),('q','z')] # each block/directory has files segmented by this range
         self.block_paths = []
-        self.final_index_file = tokenizer_path + "/merge_weighted/final_index.txt" # final Weighted Index with ALL blocks merged
+        self.final_index_file = tokenizer_path + "mergeWeighted/final_index.txt" # final Weighted Index with ALL blocks merged
         
 
     def spimi(self, document_tokens, document_id, block_size_limit = 1000000): #ir pelo block_size_limit ou outra cena mais eficiente, mas pareceu-me o melhor até agora
@@ -57,9 +57,6 @@ class InvertedSpimi:
             self.term_posting_lists = {} # empty the dictionary so that another block can be started
            
         
-
-
-
 
     def merge_blocks(self):  
         """
@@ -198,7 +195,8 @@ class InvertedSpimi:
         """
         Returns the dictionary for term-position in each document
         """
-        return self.term_position_dict
+        #return self.term_position_dict
+        pass
 
     
   

@@ -10,6 +10,7 @@ from indexing.SimpleTokenizer import SimpleTokenizer
 import math
 from collections import defaultdict
 import time
+import sys
 
 
 ## Class that calculates de scores for each document that answers a query, based on the choosen Ranking
@@ -122,7 +123,91 @@ class Ranking:
             query_latency_time=time.time() - start_time
             self.queries_latency[self.queries.index(query)+1] = query_latency_time # +1 because in the evaluation part the id for the queries starts at 1
            
-        
+
+    def contains_all_terms(self, pos_term, window): #check if a given window contains all the terms present at least once
+        contains = False
+        #pos_term vai ser a lista ou isso q diz o termo-posicao
+        for term in pos_term:
+            minPos = window[0]
+            maxPos = window [1]
+            for pos in pos_term[term]:
+                if (pos >= minPos and pos <= maxPos):
+                    contains = True
+                    break
+                else:
+                    contains = False
+            if (contains == False):
+                return contains
+        return contains
+    
+    def calc_min_window(self, pos_term): #calculates the smallest in a doc containing all terms of that query
+        x=0
+        y=0
+        window = (x,y)
+        windows = []
+
+        #Calculate maximum position between all terms
+        max_val = 0
+        i = 0
+        for term in pos_term:
+            pos_term[term].sort() #sort positions for that term
+            value = int(max(pos_term[term]))
+            if (i==0): #if it's the first iteration, then it will be the max_value 
+                max_val = value
+            else:
+                if (value > max_val):
+                    max_val = value
+            i = i+1
+
+        #Calculate all possible windows
+        while (y<= max_val and x<=max_val):
+            if(self.contains_all_terms(pos_term,window)):
+                windows.append(window)
+                x+=1
+                window = (x,y)
+            else:
+                y+=1
+                window = (x,y)
+
+        #Calculate minimum possible window
+        min_window = 0
+        for i in range(len(windows)):
+            if(len(windows) == 0):
+                break
+            win = windows[i][1] - windows[i][0] + 1
+            if(i == 0):
+                min_window = win
+            else:
+                if(win < min_window):
+                    min_window = win
+                    
+        return min_window
+
+    def calc_short_span(self, query_terms, pos_term): #calculate the len of the shortest doc segment that covers all query
+                                #term occurrences in a doc
+        min_pos = sys.maxint
+        max_pos = 0
+        total_term_occur = 0
+        no_term_occur = 0
+
+        for term in query_terms:
+            if term in pos_term:
+                if(min(pos_term[term]) < min_pos):
+                    min_pos = min(pos_term[term])
+                if(max(pos_term[term]) > max_pos):
+                    max_pos = max(pos_term[term])
+                no_term_occur = no_term_occur + 1
+                total_term_occur = total_term_occur + len(pos_term[term])
+
+        window = max_pos - min_pos
+
+        if(min_pos == sys.maxint and max_pos == 0):
+            window = sys.maxint
+        elif(window == 0):
+            window = 1
+        else:
+            window = window + 1
+        return [window, no_term_occur, total_term_occur]
 
     def get_queries_latency(self):
         """
