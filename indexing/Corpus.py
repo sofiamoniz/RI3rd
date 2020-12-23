@@ -11,9 +11,11 @@ from pandas import read_csv
 class CorpusReader():
 
     def __init__(self, csvfile):
-        self.chunkSize = 20000 # number of lines
-        self.iterator = read_csv(csvfile, chunksize=self.chunkSize, iterator=True)
         self.csvfile = csvfile
+
+        self.chunkSize = 20000 # number of lines
+        self.iterator = read_csv(self.csvfile, chunksize = self.chunkSize, iterator=True)
+        
         
 
     def nextChunk(self):
@@ -23,10 +25,10 @@ class CorpusReader():
         try:
             chunk = self.iterator.get_chunk()
         except StopIteration:
-            self.iterator = read_csv(self.csvfile, chunksize=self.chunkSize, iterator=True)
+            self.iterator = read_csv(self.csvfile, chunksize = self.chunkSize, iterator=True)
             return None
 
         chunk = chunk.dropna(subset=['abstract', 'title']) # only documents with not empty abstract or title
         chunk = chunk[['cord_uid', 'title', 'abstract']] 
-
+        
         return chunk.values

@@ -40,7 +40,7 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
     """
 
     # Some imports, variables and initializations:
-    if tokenizer_type=="s":
+    if tokenizer_type == "-s":
         from indexing.SimpleTokenizer import SimpleTokenizer
         tokenizer = SimpleTokenizer()
         inverted_spimi = InvertedSpimi("models/simpleTokenizer/", weighted_indexer_type)
@@ -72,6 +72,7 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
             doc_ids[total_docs] = real_id # Generated ID: real ID
 
             inverted_spimi.spimi(tokens,total_docs) # Inverted Spimi for this chunk / block
+        
     
     # Merge of all blocks:
     inverted_spimi.merge_blocks(total_docs, documents_len, total_tokens) 
