@@ -5,146 +5,114 @@ Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
 
-import sys
-import os
-import collections
-from collections import OrderedDict
-
+import os, collections, json
+from indexing.WeightedIndexer import WeightedIndexer
 
 ## Class that will be used as Single-pass in-memory indexer
 class InvertedSpimi:
 
-    def __init__(self,tokenizer_path):
-        self.tokenzier_path = tokenizer_path
+    def __init__(self,tokenizer_path, weighted_indexer_type):
+        self.tokenizer_path = tokenizer_path
+        self.weighted_indexer_type = weighted_indexer_type
 
-        self.inverted_index = {}
-        self.term_posting_lists = {} # dictionary with term-postings list
+        self.term_postings_list = {}
+        self.block_size = 0 # N documents
         self.block_number = 0 # each block is a directory
-        self.segmentation = [('a','f'),('g','p'),('q','z')] # each block/directory has files segmented by this range
-        self.block_paths = []
-        self.final_index_file = tokenizer_path + "/merge_weighted/final_index.txt" # final Weighted Index with ALL blocks merged
+        self.processed_documents = 0 # to know if we reached the end of a block
+        self.partitions = [('a','f'),('g','p'),('q','z')] # each block/directory has segment files, partitioned by this range
+        self.block_paths = [] 
         
 
-    def spimi(self, document_tokens, document_id, block_size_limit = 1000000): #ir pelo block_size_limit ou outra cena mais eficiente, mas pareceu-me o melhor até agora
+    def spimi(self, document, document_id):
         """
-        Applies the SPIMI invert algorithm (with term positions).
+        Applies the SPIMI invert algorithm (with term positions) for this block of N documents.
         First, we start by initializing a dictionary for term-postings list.
-        Then, we read the terms of passed document and create the postings-lists for each term.
-        When the dictionary of the term-postings lists is bigger than the passed size (in bytes), 
-        this block has ended and we need to write it to memory, and then empty the dictionary in order to start another block.
-        Each block corresponds to a directory and has files divided by an alphabetic range.
+        Then, we read the terms of each passed document and create the postings list for each term. 
+        After processing each document of this block, this block has ended and we need to write it to memory and empty the dictionary in order to start another block.
+        Each block corresponds to a directory and has files divided by an alphabetic range / partitions.
         """
-        term_position = 0 # position of token(term) in the array of tokens for this document
-        for token in document_tokens: 
-            if token not in self.term_posting_lists:
-                postings_list = self.add_to_dict(self.term_posting_lists, token) # when a term occurs for the first time, it is added to the dictionary and a new postings list is created
+
+        # Create the dictionary, for this block, with terms and their posting list:
+        term_position = 0 # position of token/term in this document
+        self.processed_documents += 1
+        for token in document: 
+            if token not in self.term_postings_list:
+                postings_list = self.add_to_dict(self.term_postings_list, token) 
             else:
-                postings_list = self.get_postings_list(self.term_posting_lists, token) # returns this postings list for subsequent occurrences of the term
-            self.add_to_postings_list(postings_list, document_id, term_position) # add to postings list
+                postings_list = self.get_postings_list(self.term_postings_list, token) 
+            self.add_to_postings_list(postings_list, document_id, term_position) 
             term_position += 1
             
-        if sys.getsizeof(self.term_posting_lists) > block_size_limit:
+        # Sort terms and write block (partitioned in segments) to disk:
+        if self.processed_documents == self.block_size: # we processed all documents for this block
             self.block_number += 1 
-            self.term_posting_lists = self.sort_terms(self.term_posting_lists) # sort dictionary by terms, alphabetic order
-            block_path = self.tokenzier_path + "spimiInverted/block_" + str(self.block_number)
+            self.term_posting_list = self.sort_terms(self.term_postings_list) # sort dictionary by terms, in alphabetic order
+            block_path = self.tokenizer_path + "spimiInverted/block_" + str(self.block_number) + '/'
             self.block_paths.append(block_path)
-            if not os.path.exists(block_path):
+            if not os.path.exists(block_path): # create the directory for block if not exists
                 os.makedirs(block_path)
-            for segment in self.segmentation: # each partition is for a range of terms first letters/segment
-                partition = {k:v for k,v in self.term_posting_lists.items() if (k[0] in self.char_range(segment[0],segment[1]))}
-                self.write_block_to_disk(partition, block_path, segment[0], segment[1]) # write the partitions of block to disk
-                                                                                                                   
-            self.term_posting_lists = {} # empty the dictionary so that another block can be started
-           
-        
+            for partition in self.partitions: # each partition is for a range of terms first char/segment
+                segment = {k:v for k,v in self.term_posting_list.items() if (k[0] in self.char_range(partition[0],partition[1]))}
+                self.write_block_to_disk(segment, block_path, partition[0], partition[1]) # write the segment to disk
+            
+            # Empty the dictionary in memory, so that another block can be started:
+            self.term_postings_list = {} 
+            self.processed_documents = 0
 
-
-
-
-    def merge_blocks(self):  
+    def merge_blocks(self, total_docs, documents_len, total_tokens):
         """
-        Agora tem se de ir a cada bloco/pasta, e juntar num só ficheiro todas as partições a-f, g-p e q-z e passar do inverted index
-        pro weighted index. 
-        E depois escrever um ficheiro também com TUDO junto, porque o stor pede no exercicio
-        """
-        block_files = [open(block_file) for block_file in self.block_files] #List with all block files to be readen in sequencial order
-        lines = [block_file.readline()[:-1] for block_file in block_files] #List with the first line of each block file (-1 deletes the last line that is "")
-        last_term = "" #String created to save the last readen term
+        For each partition, merge all segments with that partition, from all existing blocks, to one and write to disk.
+        Each segment file have a part of the Inverted Index, for that partition.
+        After the merge, we have a merged Inverted Index and we construct the Weighted Index.
+        """  
+        for partition in self.partitions: 
 
-        index = 0
-        for block_file in block_files: #Read each block file from all the files
-            if lines[index] == "": #Check if the file is empty - if so, it is deleted (pop)
-                block_files.pop(index)
-                lines.pop(index)
-            else:
-                index += 1 #Otherwise, we increase the index value in one
-        
-        with open(self.final_index_file , "w") as index_file:
-            while(len(block_files)>0): #while there are still blocks to read
-                first_index = lines.index(min(lines)) #First, we need to find the index that comes first in lexicographic
-                                                    #order - that is the minimum value of the list, once we ordered the terms before
-                line=lines[first_index]
-                curr_term = line.split()[0]
-                curr_postings = " ".join(map(str, sorted(list(map(int, line.split()[1:])))))
-                #Now we need to compare the term in the current line to the last readen term
+            merged_inverted_index = collections.defaultdict(list)
+            merged_weighted_index = {}
 
-                if (last_term != curr_term): #if they are different, we need to create in the index a new line with the new
-                                            #word, and the correspondent postings that are in the block file we are reading
-                    index_file.write("\n%s %s" % (curr_term, curr_postings))
-                    last_term = curr_term
-                else: #if they are equal, it means that we are already dealing with the most recent term, so we just need
-                        #to write the current postings list to the index file
-                    index_file.write(" %s" % curr_postings)
+            # Merge all parts of the Inverted Indexes from SPIMI, for this partition:
+            all_segments = [open(file + partition[0] + '-' + partition[1] + ".txt") for file in self.block_paths] # all segments in all blocks, with this partition
+            lines = [file.readline()[:-1] for file in all_segments] # first lines of each segment
+            last_term = "" # last readen term
+    
+            while(len(all_segments) > 0): 
+                first_index = lines.index(min(lines)) # first word in alphabetic order
+                line = lines[first_index]
+                current_term = line.split(';')[0]
+                current_postings = line.split(';')[1:]
+                if (last_term != current_term): 
+                    merged_inverted_index[current_term].append(int(current_postings[0]))
+                    merged_inverted_index[current_term].append(json.loads(current_postings[1]))
+                    last_term = current_term
+                else: 
+                    merged_inverted_index[current_term][0] += int(current_postings[0])
+                    merged_inverted_index[current_term][1].update(json.loads(current_postings[1]))
 
-                lines[first_index] = block_files[first_index].readline()[:-1]
+                lines[first_index] = all_segments[first_index].readline()[:]
+                line = lines[first_index]
 
-                if lines[first_index] == "": #If the current block doesn't have more lines, we have to pop it
-                                            #so that we can pass to the next block, if there are more to read
-                    block_files[first_index].close()
-                    block_files.pop(first_index)
+                if lines[first_index] == "": # no more lines
+                    all_segments[first_index].close()
+                    all_segments.pop(first_index)
                     lines.pop(first_index)
-                    
-        #Now, once we have the index file (the result of merging the blocks)
-        #We can create the inverted index
-        #Note - the index file has, per line, (term - docs) in which the term occurs
-        #Ex : abaecin 11904 11904 11904 11904 11904 11904 11904 11904
-        #It means that term "abaecin" has a term frequency of 8 in document 11904
-
-
-    def final_inverted_index(self):
-        """
-        Creates the inverted index by reading the index file previously created to a dictionary
-        """
-        index_file = open(self.final_index_file)
-        index_file.readline()
-       
-        for line in index_file:
-            line=line.split()
-            #line[0] -> term
-            #line[1:] -> documents (docs ids) where the term occurs 
-            for doc_id in sorted(map(int,line[1:])):
-                if line[0] not in self.inverted_index:
-                    freq_posting=[] # [doc_freq,posting]  where doc_freq is the number total of documents where the term occurs
-                                    # In python, the order of an array is mantained, so no problem!
-                    posting={} # {"doc1":occurrences_of_term_in_doc1,"doc2":occurences_of_term_in_doc2,...}  only with documents where the term occurs
-                    freq_posting.append(1)
-                    posting[doc_id]=1
-                    freq_posting.append(posting)
-                    self.inverted_index[line[0]]=freq_posting # {"term1":freq_posting1,"term2":freq_posting2,...}
-                else:
-                    freq_posting=self.inverted_index[line[0]]
-                    posting=freq_posting[1] # The second position of this arrays are always the posting dictionary!
-                    if doc_id in posting:
-                        posting[doc_id]=posting[doc_id]+1 # The document already exists in the posting dictionary, so we only need to increment the occurance of the term in it
-                    else: # The document for this term don't exists in the posting dictionary
-                        posting[doc_id]=1
-                        freq_posting[0]=freq_posting[0]+1
-
-        return self.inverted_index
-
-
+            
+            # Construct the Weighted Index from the merged Inverted Index, for this partition:
+            weighted_indexer = WeightedIndexer(total_docs, merged_inverted_index, documents_len, total_tokens)
+            if self.weighted_indexer_type == "-bm25": merged_weighted_index = weighted_indexer.bm25()
+            else: merged_weighted_index = weighted_indexer.lnc_ltc()
+            merged_weighted_index = weighted_indexer.get_weighted_index()
+            
+            # Write the Weighted Index, for this partition, to a file:
+            self.write_merged_block_to_disk(partition, merged_weighted_index)
+                
 
 ## AUXILIAR FUNCTIONS:
+
+    def set_block_size(self, block_size):
+        """
+        Sets the size (number of documents to be processed) for a block
+        """
+        self.block_size = block_size
 
     def add_to_dict(self,dictionary,term):
         """
@@ -180,25 +148,31 @@ class InvertedSpimi:
 
     def write_block_to_disk(self, dictionary, block_path, first_char, last_char):
         """
-        Writes each partition of the block in disk
+        Writes segment of the block in disk
         """
-        partition_file = block_path + '/' + str(first_char) + '-' + str(last_char) + '.txt'
-        with open(partition_file , "w") as file:
-            for term in dictionary:
-                line = "%s %s\n" % (term, ' '.join([str(document_id) for document_id in dictionary[term]]))
+        segment_file = block_path + '/' + str(first_char) + '-' + str(last_char) + '.txt'
+        with open(segment_file , "w") as file:
+            for term, posting_list in dictionary.items():
+                inverted_index = []
+                docs_freq = collections.defaultdict(list)
+                for posting in posting_list:
+                    docs_freq[posting[0]].append(posting[1])
+                inverted_index.append(len(docs_freq))
+                inverted_index.append(docs_freq)
+                line = "%s;%s;%s\n" % (term, inverted_index[0], json.dumps(inverted_index[1]))
                 file.write(line)
-           
-    def show_inverted_index(self):
-        """
-        Prints the Inverted Index
-        """
-        print(self.inverted_index) 
+        file.close()
 
-    def get_term_positions_dictionary(self):
+    def write_merged_block_to_disk(self, partition, weighted_index):
         """
-        Returns the dictionary for term-position in each document
+        Writes merged segment of all blocks in disk
         """
-        return self.term_position_dict
+        with open(self.tokenizer_path + "mergeWeighted/" + partition[0] + '-' + partition[1] + ".txt", "w") as file:
+            for term,index in weighted_index.items():
+                line = "%s;%s;%s\n" % (term, index[0], json.dumps(index[1]))
+                file.write(line)
+        file.close()
+
 
     
   

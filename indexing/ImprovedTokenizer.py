@@ -1,6 +1,6 @@
 """
-IR, November 2020
-Assignment 2: Ranked Retrieval
+IR, December 2020
+Assignment 3: Ranked Retrieval
 Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
@@ -14,7 +14,6 @@ class ImprovedTokenizer:
     def __init__(self):
         self.stemmer = Stemmer.Stemmer('english') # stemmer
         self.stop_words = self.set_stop_words() # set of stop words
-
 
 
     def tokenize(self,received_string):
@@ -36,7 +35,7 @@ class ImprovedTokenizer:
                     if not self.contains_digit(w): filtered_sentence.append(w)  #If the treated string doesn't contain numbers, it will be appended.
                                                                                 #This is made in order to avoid strange words like a23df or xcxft3, for example
 
-        #Do the stem to each word from filtered_sentence, using the PyStemmer
+        # Do the stem to each word from filtered_sentence, using the PyStemmer
         # Words with at least 3 chars (after the stem), and not having all the same chars or more than 3 sequentially (eg. zzz) will not be appended to the final tokenized array
         
         final_tokenized=[]
@@ -48,8 +47,6 @@ class ImprovedTokenizer:
         
         return final_tokenized
 
-
-
     def set_stop_words(self): 
         """
         Reads and saves the stop words from the file required
@@ -58,8 +55,6 @@ class ImprovedTokenizer:
             stop_words_set = set([word.strip() for word in stop_words])
             
         return stop_words_set
-
-
 
     def characs_same(self,s) :
         """
@@ -86,19 +81,15 @@ class ImprovedTokenizer:
         if (sameChars>=2) or (sameChars==1 and len(s)==3) or (sameChars==1 and repeatedChars not in ["ss","tt","ff","ll","mm","oo","ee"]): return True
         else: return False
 
-
-
     def contains_digit(self, w): 
         """
-        Check if a given string contains digits
+        Checks if a given string contains digits
         """
         if any(char.isdigit() for char in w): return True
 
-
-
     def is_website(self, w):
         """
-        Check if a given string is a website
+        Checks if a given string is a website
         """
         if ('www' in w or 'http' in w or 'https' in w) and w.count('.') > 1: return True
 

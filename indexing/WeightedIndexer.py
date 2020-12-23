@@ -1,6 +1,6 @@
 """
-IR, November 2020
-Assignment 2: Ranked Retrieval
+IR, December 2020
+Assignment 3: Ranked Retrieval
 Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
@@ -13,50 +13,46 @@ from collections import defaultdict
 ## Class that creates the Weighted Index from the InvertedIndex
 class WeightedIndexer:
 
-    def __init__(self,total_docs,inverted_index, document_len, total_terms):
-        self.total_docs=total_docs
-        self.inverted_index=inverted_index
-        self.document_len=document_len
-        self.total_terms=total_terms
-        self.avgdl = 0
-        #self.dl = [document_len[doc_id] for doc_id in document_len]
-        #self.avgdl = self.calc_avgdl() #sum(self.dl) /= total_terms        
-        self.weighted_index={}
+    def __init__(self, total_docs, inverted_index, documents_len, total_terms):
+        self.total_docs = total_docs
+        self.inverted_index = inverted_index
+        self.documents_len = documents_len
+        self.total_terms = total_terms
+
+        self.avgdl = 0     
+        self.weighted_index = {}
         
-    ## inverted_index = { "term" : [ doc_freq, {"doc1":occurrences_of_term_in_doc1, "doc2": occurrences_of_term_in_doc2,...}],...  }
-    ## weighted_index = { "term" : [ idf, {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}],...  }
+    ## inverted_index = { "term" : [ doc_freq, {"doc1": [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...}],...}
+    ## weighted_index = { "term" : [ idf, {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...]],...}],... }
     
     def calc_avgdl(self):
         count=0
-        for doc_id in self.document_len:
-            self.avgdl += self.document_len[doc_id]
+        for doc_id in self.documents_len:
+            self.avgdl += self.documents_len[doc_id]
             count+=1
         self.avgdl /= count
 
     # lnc.ltc:
-    def weighted_index_lnc_ltc(self):       
+    def lnc_ltc(self):       
         """
         Calculates the lnc.ltc weights of each document
         """
         for term in self.inverted_index:
-            
-            docsWeigh={} # {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}  only with documents where the term occurs
-            idf_docsWeight=[] # [idf,docWeights_with_lnc_ltc]  
-                              # In python, the order of an array is mantained, so no problem!
-            
+            docsWeigh=defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...}
+            idf_docsWeight = [] # [idf,docWeights_with_lnc_ltc_and_positions]  
+                              
             idf = math.log10(self.total_docs/self.inverted_index[term][0])
             idf_docsWeight.append(idf)         
 
             doc_pow_sum = defaultdict(int) # This will be used as the normalization factor.
                           # This is a default dictionary so that if a certain value doesn't exist, it will have a default value of 0
             
-            for doc_id in self.inverted_index[term][1]: # self.inverted_index[term][1]) contains : {docID: tf}
-                tf = self.inverted_index[term][1][doc_id] # term frequency (tf) - number of times each term appears in a doc
-                weight = 1+math.log10(tf) # this calculates the weight of term-document
+            for doc_id in self.inverted_index[term][1]: 
+                tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
+                weight = 1 + math.log10(tf) # this calculates the weight of term-document
                 doc_pow_sum[doc_id] += weight ** 2 # sum of all the weights of each document
-                                                    # each weight to the pow of 2
-                                                    # this will be used in the cossine normalization
-
+                                                   # each weight to the pow of 2
+                                                   # this will be used in the cossine normalization
             # normalization - cossine normalization:
             # the cossine normalization is sqrt the inverse of the sum of all the weights of a document, each one to the pow of 2
             for doc_id in doc_pow_sum:
@@ -64,37 +60,31 @@ class WeightedIndexer:
                         
             idf_docsWeight.append(docsWeigh)
 
-            self.weighted_index[term]=idf_docsWeight
+            self.weighted_index[term] = idf_docsWeight
             
 
 
     # bm25:
-    def weighted_index_bm25(self,  k = 1.2 , b = 0.75): # k is a value between 1.2 and 2.0  
+    def bm25(self,  k = 1.2 , b = 0.75): 
         """
         Calculates the bm25 weights of each document
         """   
-
         self.calc_avgdl() #calculates avgdl only when calling bm25
         for term in self.inverted_index: 
+            docsWeigh = defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...} 
+            idf_docsWeight = [] # [idf, docWeights_with_bm25_and_positions]  
 
-            docsWeigh=defaultdict(int) # {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}  only with documents where the term occurs
-            idf_docsWeight=[] # [idf,docWeights_with_bm25]  
-                              # In python, the order of an array is mantained, so no problem!
-            idf = math.log10(self.total_docs/self.inverted_index[term][0])
+            idf = math.log10(self.total_docs / self.inverted_index[term][0])
             idf_docsWeight.append(idf)
-
-            for doc_id in self.inverted_index[term][1]: # self.inverted_index[term][1]) contains : {docID: tf}
-                tf = self.inverted_index[term][1][doc_id] # term frequency (tf) - number of times each term appears in a doc
-                docsWeigh[doc_id] += (idf * tf * (k+1)
-                      / (tf + k * (1 - b + b * self.document_len[doc_id] / self.avgdl))) # bm25 formula
-           
+            for doc_id in self.inverted_index[term][1]: 
+                tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
+                docsWeigh[doc_id][0] += (idf * tf * (k+1)
+                      / (tf + k * (1 - b + b * self.documents_len[int(doc_id)] / self.avgdl))) # bm25 formula
+                docsWeigh[doc_id][1] = self.inverted_index[term][1][doc_id] # list with term positions in this doc
 
             idf_docsWeight.append(docsWeigh)
 
-            self.weighted_index[term]=idf_docsWeight
-
-
-
+            self.weighted_index[term] = idf_docsWeight
 
     def get_weighted_index(self):
         """
@@ -102,17 +92,12 @@ class WeightedIndexer:
         """
         return self.weighted_index             
                 
-
-
-
     def show_weighted_index(self):
         """
         Prints the Weighted Index
         """
         print(self.weighted_index) 
    
-
-
     def get_size_in_mem(self):
         """
         Returns the size of the dictionary with the Weighted Index

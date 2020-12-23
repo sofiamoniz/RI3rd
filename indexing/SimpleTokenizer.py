@@ -1,6 +1,6 @@
 """
-IR, November 2020
-Assignment 2: Ranked Retrieval
+IR, December 2020
+Assignment 3: Ranked Retrieval
 Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
@@ -12,7 +12,7 @@ class SimpleTokenizer:
 
     def __init__(self):
         pass
-
+    
 
     def tokenize(self, received_string):
         """
@@ -22,9 +22,6 @@ class SimpleTokenizer:
         received_string=received_string.lower().split() # Put all chars to lower          
                   
         return [word for word in received_string if len(word) >=3 ] # Only admit strings with len >=3
-
-
-   
 
     def replace_non_alpha(self,old_string): # Used to replace non-alpha chars
         """
