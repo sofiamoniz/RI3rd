@@ -26,26 +26,31 @@ def main():
         python3 Search.py models/simpleTokenizer/weightedIndex_lnc_ltc.txt queries.txt queries.relevance.filtered.txt 10
     """
 
-    if len(sys.argv) != 5: 
-        print ("\nUsage:\n\n   Search.py <weightedIndexFile> <queryFile> <queryRelevancesFile> <numberOfDocsToReturn> \n\n Example: Search.py models/improvedTokenizer/weightedIndex_bm25.txt queries.txt queries.relevance.filtered.txt 50")
+    if len(sys.argv) != 6: 
+        print ("\nUsage:\n\n   Search.py <ranking_type> <tokenizer> <queryFile> <queryRelevancesFile> <numberOfDocsToReturn>  \n\n Example: Search.py -bm25 -i queries.txt queries.relevance.filtered.txt 50")
+        print("isto tem q ser mudado mas escolhe o q usaste anteriormente xD")
+        #isto por agora fica assim, mas temos q arranjar uma forma melhor para usar
+        #o tokenizer e o ranking q foram usados no indexer anteriormente, por causa de 
+        #ter q se correr o indexer e o search separados
         sys.exit()
-    elif not float(sys.argv[4]).is_integer():
+    elif not float(sys.argv[5]).is_integer():
         print("Invalid number of document to return per query! Must be an integer.")
         sys.exit()
 
 
 
-    index_file=sys.argv[1]
-    query_file=sys.argv[2]
-    relevances_file=sys.argv[3]
-    number_of_docs_to_return=sys.argv[4]
-    tokenizer=index_file[8:9] # type of tokenizer used in the weighted index ('s' or 'i')
-    if "bm25" in index_file: ranking_type="bm25"   # type of ranking used in the weighted index ('bm25' or 'lnc.ltc')
+    chosen_ranking=sys.argv[1]
+    tokenizer=sys.argv[2] # type of tokenizer used in the weighted index ('s' or 'i')
+    query_file=sys.argv[3]
+    relevances_file=sys.argv[4]
+    number_of_docs_to_return=sys.argv[5]
+    
+    if "bm25" == chosen_ranking[1:]: ranking_type="bm25"   # type of ranking used in the weighted index ('bm25' or 'lnc.ltc')
     else: ranking_type="lnc.ltc"
  
-    retrieval_engine = RetrievalEngine(tokenizer,ranking_type,index_file,query_file,relevances_file,number_of_docs_to_return)
+    retrieval_engine = RetrievalEngine(tokenizer,ranking_type,query_file,relevances_file,number_of_docs_to_return)
     #print(retrieval_engine.construct_weighted_index())
-    #retrieval_engine.query_search()
+    retrieval_engine.query_search()
     #retrieval_engine.evaluation()
 
 

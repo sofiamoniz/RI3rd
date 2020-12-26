@@ -15,10 +15,9 @@ from searching.Evaluation import Evaluation
 ## Class that acts as a pipeline for the all searching and retrieval process (calls all the other classes and methods)
 class RetrievalEngine:
 
-    def __init__(self,tokenizer,ranking_type,index_file,query_file,relevances_file,number_of_docs_to_return):
+    def __init__(self,tokenizer,ranking_type,query_file,relevances_file,number_of_docs_to_return):
         self.tokenizer=tokenizer
         self.ranking_type=ranking_type
-        self.index_file=index_file
         self.query_file=query_file
         self.relevances_file=relevances_file
         self.top=number_of_docs_to_return # for each query
@@ -62,8 +61,7 @@ class RetrievalEngine:
         with open("results/ranking_"+self.ranking_type+".txt", 'w') as file_ranking:
             file_ranking.write("***  TOP "+self.top+" RETURNED DOCUMENTS *** ")
             file_ranking.write("\n\nRanking: "+self.ranking_type)
-            file_ranking.write("\nIndex file: "+self.index_file)
-            file_ranking.write("\nTokenizer: "+"Improved\n" if self.tokenizer=='i' else "Simple\n")
+            file_ranking.write("\nTokenizer: "+"Improved\n" if self.tokenizer=='-i' else "Simple\n")
             for i in range(0,len(self.queries)):
                 file_ranking.write("\n\n -> Query: "+self.queries[i]+"\n")
                 file_ranking.write("\nQuery latency: " + str(self.queries_latency[i+1])+" seconds\n")
@@ -120,7 +118,7 @@ class RetrievalEngine:
         """
         for c in range(ord(first_char), ord(last_char)+1):
             yield chr(c)
-            
+
 
     def get_weighted_file(self,term_char):
         if term_char in self.char_range("a","f"):
