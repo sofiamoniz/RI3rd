@@ -163,7 +163,7 @@ class Ranking:
         pos_list2=self.weighted_index[term2][1][DocID][1]
         for pos in pos_list1:
             termscore=0.0
-            if pos+1 in pos_list2: #dar os scores q quisermos
+            if pos+1 in pos_list2: #dar os scores q quisermos (?)
                 termscore= 1.0
             elif pos+2 in pos_list2:
                 termscore= 0.95
