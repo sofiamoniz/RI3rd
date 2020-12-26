@@ -26,12 +26,11 @@ class RetrievalEngine:
         self.scores_for_evaluation = {} # {query_1 : {doc_1: score , doc_2: score,...},...} 
         self.queries_processiong = 0
         self.queries_latency = []
-        self.weighted_index=self.read_index_file()  # weighted_index = { "term" : [ idf, {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}],...  }
         self.queries=self.read_queries_file() # queries = [ query1, query2, query3,...]
+        self.weighted_index=self.construct_weighted_index()  # weighted_index = { "term" : [ idf, {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}],...  }
         self.real_doc_ids=self.read_doc_ids_file() # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
         self.relevances=self.read_relevances_file() # { query1_id : { doc1_real_Id: relevance, doc2_real_Id: relevance,...},...}
-
-
+    
     def query_search(self):
         """
         Search the query terms and returns the retrieved ordered documents, based on the ranking type choosen. Writes results to files.
@@ -97,31 +96,40 @@ class RetrievalEngine:
     
 
        
-
-
-
  ## AUXILIAR FUNCTIONS:
 
+    def construct_weighted_index(self):
+        weighted_index = {} #{ "term" : [ idf, {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...]],...}],... }
+        for query in self.queries:
+            for term in query.split():
+                file = open(self.get_weighted_file(term[0]), 'r')
+                for line in file:
+                    tokens=line.rstrip().split(';')
+                    if tokens[0] == term and term not in weighted_index:
+                        idf=float(tokens[1])
+                        tokens[2]=tokens[2].replace('\'','\"')
+                        weights_pos=json.loads(tokens[2])
+                        weighted_index[term] = [idf,weights_pos]
+                file.close()
+        return weighted_index 
 
-    def read_index_file(self):
+
+    def char_range(self,first_char,last_char): 
         """
-        Reads the file with the Weighted Index to dictionary
+        Generates the characters from first_char to last_char, inclusive.
         """
-        weighted_index={}
-        file = open(self.index_file, 'r') 
-        for line in file:
-            tokens=line.rstrip().split(';') 
-            term=tokens[0]
-            idf=float(tokens[1])
-            tokens[2]=tokens[2].replace('\'','\"')
-            docsWeights=json.loads(tokens[2])
+        for c in range(ord(first_char), ord(last_char)+1):
+            yield chr(c)
+            
 
-            weighted_index[term]=[idf,docsWeights]  # weighted_index = { "term" : [ idf, {"doc1":weight_of_term_in_doc1,"doc2":weight_of_term_in_doc2,...}],...  }
-        file.close()
-
-        return weighted_index
-    
-
+    def get_weighted_file(self,term_char):
+        if term_char in self.char_range("a","f"):
+            return "models/improvedTokenizer/mergeWeighted/a-f.txt"
+        elif term_char in self.char_range("g","p"):
+            return "models/improvedTokenizer/mergeWeighted/g-p.txt"
+        else:
+            return "models/improvedTokenizer/mergeWeighted/q-z.txt" 
+                
 
     def read_queries_file(self):
         """
@@ -134,7 +142,6 @@ class RetrievalEngine:
         file.close()
 
         return queries
-
 
 
     def read_doc_ids_file(self):

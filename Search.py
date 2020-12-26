@@ -44,8 +44,9 @@ def main():
     else: ranking_type="lnc.ltc"
  
     retrieval_engine = RetrievalEngine(tokenizer,ranking_type,index_file,query_file,relevances_file,number_of_docs_to_return)
-    retrieval_engine.query_search()
-    retrieval_engine.evaluation()
+    #print(retrieval_engine.construct_weighted_index())
+    #retrieval_engine.query_search()
+    #retrieval_engine.evaluation()
 
 
 if __name__ == '__main__':
