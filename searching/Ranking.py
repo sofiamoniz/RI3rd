@@ -110,27 +110,25 @@ class Ranking:
             # Tokenize the query with the same tokenizer used on the documents:
             
             query_terms = self.tokenizer.tokenize(query)
-            term_window = {}
-            if consider_proximity: 
-                #query_windows[query] = self.calc_short_span(query_terms) #tentativa 1
-                query_windows[query] = self.consider_proximity(query_terms)                
-
             
             for term in query_terms: # query terms already tokenized and processed
                 if term in self.weighted_index:  # if term exists in any document
                     
                     for doc_id,doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
                         doc_weight = doc_weight_pos[0]
-                        term_positions = doc_weight_pos[1]                
+                        #term_positions = doc_weight_pos[1]                
                         docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + doc_weight
          
             docs_scores_for_query={k: v for k, v in sorted(docs_scores_for_query.items(), key=lambda item: item[1], reverse=True)} # order by score ( decreasing order )
             
-            self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
+            if consider_proximity:                
+                self.scores.append(self.consider_proximity(query_terms, docs_scores_for_query))
+            else:
+                self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
             
             query_latency_time=time.time() - start_time
             self.queries_latency[self.queries.index(query)+1] = query_latency_time # +1 because in the evaluation part the id for the queries starts at 1
-        #print(query_windows)
+
 
     def get_queries_latency(self):
         """
@@ -138,10 +136,11 @@ class Ranking:
         """
         return self.queries_latency
         
-    def consider_proximity(self, query_terms):
+    def consider_proximity(self, query_terms , docs_scores_for_query):
         proximity_score_dict={} # dictionary that contains the document ID and its proximity score
+        tp_score = {}
         for q_term in range(len(query_terms) -1):
-            proximity_terms = query_terms[q_term:q_term+2]
+            proximity_terms = query_terms[q_term:q_term+2] #verify the proximity of the terms 2 by 2
             if (proximity_terms[0] in self.weighted_index) & (proximity_terms[1] in self.weighted_index):
                 for docID,doc_weight_pos in self.weighted_index[proximity_terms[0]][1].items():
                     numerator_score = 0
@@ -152,54 +151,42 @@ class Ranking:
                         proximity_score_dict[docID]+=numerator_score
                     except KeyError:
                         proximity_score_dict[docID]=numerator_score
-        #print(proximity_score_dict)
-        return proximity_score_dict
+        #for doc_id,prox_score in proximity_score_dict.items():
+        #    tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
+        for doc_id in docs_scores_for_query:
+            if doc_id in proximity_score_dict:
+                tp_score[doc_id] = proximity_score_dict[doc_id] + docs_scores_for_query[doc_id]
+            else:
+                tp_score[doc_id] = docs_scores_for_query[doc_id]
+        return {k: v for k, v in sorted(tp_score.items(), key=lambda item: item[1], reverse=True)} # order by score ( decreasing order )          
+
 
     def check_proximity(self,term1,term2,DocID):
-        pos_list1=[]
-        pos_list2=[]
+        pos_doc_term1=[]
+        pos_doc_term2=[]
         total_score=0.0
-        pos_list1=self.weighted_index[term1][1][DocID][1] #positions of term in that doc
-        pos_list2=self.weighted_index[term2][1][DocID][1]
-        for pos in pos_list1:
+        pos_doc_term1=self.weighted_index[term1][1][DocID][1] #positions of term in that doc
+        pos_doc_term2=self.weighted_index[term2][1][DocID][1]
+        for pos in pos_doc_term1:
             termscore=0.0
-            if pos+1 in pos_list2: #dar os scores q quisermos (?)
+            if pos+1 in pos_doc_term2: #dar os scores q quisermos (?)
                 termscore= 1.0
-            elif pos+2 in pos_list2:
+            elif pos+2 in pos_doc_term2:
                 termscore= 0.95
-            elif pos+3 in pos_list2:
+            elif pos+3 in pos_doc_term2:
                 termscore= 0.9
-            elif pos+4 in pos_list2:
+            elif pos+4 in pos_doc_term2:
                 termscore= 0.60
+            elif pos+5 in pos_doc_term2:
+                termscore= 0.30
+            elif pos+6 in pos_doc_term2:
+                termscore= 0.15
+            elif pos+7 in pos_doc_term2:
+                termscore= 0.05
             total_score+=termscore
-        print(total_score)
-        return total_score # the score of the 2 terms co-occuring
-
-
-    def calc_short_span(self, query_terms): #calculate the len of the shortest doc segment that covers all query
-                                        #term occurrences in a doc
-        minPos = sys.maxsize
-        maxPos = 0
-        noTotalTermOccur = 0
-        noTermOccur = 0
-        for term in query_terms: # query terms already tokenized and processed
-            if term in self.weighted_index:  # if term exists in any document                
-                for doc_id,doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
-                    #doc_weight = doc_weight_pos[0]
-                    term_positions = doc_weight_pos[1]
-                    if(min(term_positions) < minPos):
-                        minPos = min(term_positions)
-                    if(max(term_positions) > maxPos):
-                        maxPos = max(term_positions)
-                    
-
-        window = maxPos - minPos
-                
-        if(minPos == sys.maxsize and maxPos == 0):
-            window = sys.maxsize
-        elif(window == 0):
-            window = 1
-        else:
-            window = window + 1
-        return window
+            #há algumas queries em q as palavras estão tão distantes q ele nem lhe dá score
+            #não sei se é suposto ser assim ou se temos que atribuir mais scores super baixinhos
+            #para distâncias muito altas
+        
+        return total_score # score of the 2 terms according to the distance between them
     
