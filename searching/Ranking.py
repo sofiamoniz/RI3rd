@@ -69,7 +69,7 @@ class Ranking:
             self.weighted_queries.append(weighted_query) # self.weighted_queries = [ weighted_query1, weighted_query2, ...]
             
      
-    def score_lnc_ltc(self):
+    def score_lnc_ltc(self, consider_proximity = True):
         """
         Computes the scores for all documents that answers the query
         """
@@ -79,14 +79,20 @@ class Ranking:
 
             docs_scores_for_query=defaultdict(int) # docs_scores_for_query = { doc1: score1, doc2: score2, ...} for all docs that answers the query
 
+            query_terms = self.tokenizer.tokenize(self.queries[i])
+
             for term,term_query_weight in self.weighted_queries[i].items():  
                 if term in self.weighted_index: # if term exists in any document
-                    for doc_id,term_doc_weight in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
+                    for doc_id,term_doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
+                        term_doc_weight = term_doc_weight_pos[0]
                         docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + (term_query_weight * term_doc_weight)
 
             docs_scores_for_query={k: v for k, v in sorted(docs_scores_for_query.items(), key=lambda item: item[1], reverse=True)} # order by score ( decreasing order )
             
-            self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
+            if consider_proximity:                
+                self.scores.append(self.consider_proximity(query_terms, docs_scores_for_query))
+            else:
+                self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
             
             score_time=time.time()-start_time
             weight_time=self.latency_time_weight_queries[i]
