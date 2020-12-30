@@ -72,6 +72,10 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
     
     # Merge of all blocks:
     inverted_spimi.merge_blocks(total_docs, documents_len, total_tokens) 
+    with open("models/mergedWeighted/type.txt", "w") as file: # File stores the tokenizer and weighted indexer types used
+        line = "%s %s" % (tokenizer_type, weighted_indexer_type)
+        file.write(line)
+    file.close()
     indexing_time = time.time() - start_time
         
     # Results:

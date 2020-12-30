@@ -175,6 +175,7 @@ class InvertedSpimi:
                 line = "%s;%s;%s\n" % (term, index[0], json.dumps(index[1]))
                 file.write(line)
         file.close()
+        
 
 
     

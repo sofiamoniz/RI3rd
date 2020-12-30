@@ -13,29 +13,33 @@ def main():
     """ 
     Gets the arguments and runs the searching (or indexing and searching) program 
     """
-    if len(sys.argv) != 6 and len(sys.argv) != 7: 
-        print ("\nUsage:\n\n   Search.py <tokenizer> <ranking_type> <queryFile> <queryRelevancesFile> <numberOfDocsToReturn> <consider_proximity>\n\n Example: Search.py i bm25 queries.txt queries.relevance.filtered.txt 50 consider_proximity\n       or Search.py s lnc_ltc queries.txt queries.relevance.filtered.txt 50\n")
+    if len(sys.argv) != 5 and len(sys.argv) != 6: 
+        print ("\nUsage:\n\n   Search.py <tokenizer> <csv_file> <ranking_type> <numberOfDocsToReturn> <consider_proximity>\n\n Example: Search.py i metadata.csv bm25 50 consider_proximity\n       or Search.py s metadata.csv lnc_ltc 50\n")
         sys.exit()
     else:
-        if not float(sys.argv[5]).is_integer():
+        if not float(sys.argv[4]).is_integer():
             print("Invalid number of documents to return per query! Must be an integer.")
             sys.exit()
-        if len(sys.argv) == 7: 
-            if sys.argv[6] != "consider_proximity":
+        if len(sys.argv) == 6: 
+            if sys.argv[5] != "consider_proximity":
                 print("Invalid last argument! Must be None or 'consider_proximity'.")
                 sys.exit()
             else: 
                 consider_proximity = True
         else: consider_proximity = False
-        if not os.path.exists('models/mergedWeighted'): # if models/mergedWeighted don't exist, then run indexing part
+        if (not os.path.exists('models/mergedWeighted')) or (os.path.exists('models/mergedWeighted') and check_index(sys.argv[1], sys.argv[3]) != True): 
+        # if models/mergedWeighted don't exist 
+        # or exist, but the Weighted Index was not constructed with the same tokenizer and ranking types choosen by the user in this program
+        # then run indexing part
+            print("running indexing part")
             from Index import indexer # indexing program
             import glob # to get the csv file
-            indexer(sys.argv[1], glob.glob("*.csv")[0], sys.argv[2])
-        retrieval_engine(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], consider_proximity) 
+            indexer(sys.argv[1], sys.argv[2], sys.argv[3])
+        retrieval_engine(sys.argv[1], sys.argv[3], sys.argv[4], consider_proximity) 
        
                 
 
-def retrieval_engine(tokenizer, ranking_type, query_file, relevances_file, number_of_docs_to_return, consider_proximity):
+def retrieval_engine(tokenizer, ranking_type, number_of_docs_to_return, consider_proximity):
     """
     Searches the query terms and returns the retrieved ordered documents, based on the ranking type choosen. Writes results to files.
     Calls the evaluation method.
@@ -50,9 +54,9 @@ def retrieval_engine(tokenizer, ranking_type, query_file, relevances_file, numbe
     """
 
     # Read from files to memory:
-    queries = read_queries_file(query_file) # queries = [ query1, query2, query3,...]
-    real_doc_ids = read_doc_ids_file() # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
-    relevances = read_relevances_file(relevances_file) # { query1_id : { doc1_real_Id: relevance, doc2_real_Id: relevance,...},...}
+    queries = read_queries_file("queries.txt") # queries = [ query1, query2, query3,...]
+    real_doc_ids = read_doc_ids_file('models/documentIDs.txt') # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
+    relevances = read_relevances_file("queries.relevance.filtered.txt") # { query1_id : { doc1_real_Id: relevance, doc2_real_Id: relevance,...},...}
     
     # Some variables and initializations:
     scores_for_evaluation = {} # { query1_id : { doc1_real_Id : score , doc2_real_Id: score,...},...}
@@ -74,7 +78,7 @@ def retrieval_engine(tokenizer, ranking_type, query_file, relevances_file, numbe
     with open("results/ranking_" + ranking_type + ".txt", 'w') as file_ranking:
         file_ranking.write("***  TOP " + number_of_docs_to_return + " RETURNED DOCUMENTS *** ")
         file_ranking.write("\n\nRanking: " + ranking_type)
-        file_ranking.write("\nTokenizer: " + "Improved\n" if tokenizer=='i' else "Simple")
+        file_ranking.write("\nTokenizer: " + ("Improved\n" if tokenizer=='i' else "Simple\n"))
         file_ranking.write("Consider proximity: " + str(consider_proximity))
         for i in range(0,len(queries)):
             file_ranking.write("\n\n -> Query: " + queries[i]+"\n")
@@ -112,6 +116,20 @@ def evaluate(top, relevances, scores_for_evaluation, queries_processing, ranking
 
 ## AUXILIAR FUNCTIONS: 
 
+def check_index(tokenizer, ranking):
+    """
+    Returns True if the tokenizer and ranking choosen by the user are the same as the ones used 
+    to construct the Weighted Index in memory
+    """
+    file = open("models/mergedWeighted/type.txt", 'r')
+    for line in file:
+        line = line.split()
+        if line[0] == tokenizer and line[1] == ranking:
+            file.close()
+            return True
+        file.close()
+        return False
+
 def read_queries_file(query_file):
     """
     Reads the file with the queries to an array
@@ -124,12 +142,12 @@ def read_queries_file(query_file):
         
     return queries
 
-def read_doc_ids_file():
+def read_doc_ids_file(ids_file):
     """
     Reads the file with the document id's mapping to a dictionary
     """
     real_doc_ids={}
-    with open('models/documentIDs.txt') as file_ids:
+    with open(ids_file) as file_ids:
         real_doc_ids = json.load(file_ids)   # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
     file_ids.close()
 
