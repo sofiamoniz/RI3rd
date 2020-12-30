@@ -38,7 +38,7 @@ class WeightedIndexer:
         Calculates the lnc.ltc weights of each document
         """
         for term in self.inverted_index:
-            docsWeigh=defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...}
+            docsWeigh = defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...}
             idf_docsWeight = [] # [idf,docWeights_with_lnc_ltc_and_positions]  
                               
             idf = math.log10(self.total_docs/self.inverted_index[term][0])

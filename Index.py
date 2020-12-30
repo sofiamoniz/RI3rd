@@ -13,14 +13,11 @@ def main():
     """ 
     Gets the arguments and runs the indexing program 
     """
-    if len(sys.argv)!=4: 
-        print ('Usage:\n\n   Index.py -s <fileToRead> -bm25\nor Index.py -i <fileToRead> -bm25\nor Index.py -s <fileToRead> -lnc_ltc\nor Index.py -i <fileToRead> -lnc_ltc \n\n Example: python3 Index.py -s metadata.csv -bm25')
+    if len(sys.argv) != 4 or (sys.argv[1] != "i" and sys.argv[1] != "s") or (sys.argv[3] != "bm25" and sys.argv[3] != "lnc_ltc"): 
+        print ("\nUsage:\n\n   Index.py <tokenizer> <csv_file> <ranking_type>\n\n Example: python3 Index.py i metadata.csv bm25\n       or python3 Index.py s metadata.csv lnc_ltc\n")
         sys.exit()
-    elif (sys.argv[1]!="-i" and sys.argv[1]!="-s") or (sys.argv[3]!="-bm25" and sys.argv[3]!="-lnc_ltc"):
-        print ('Usage:\n\n   Index.py -s <fileToRead> -bm25\nor Index.py -i <fileToRead> -bm25\nor Index.py -s <fileToRead> -lnc_ltc\nor Index.py -i <fileToRead> -lnc_ltc \n\n Example: python3 Index.py -s metadata.csv -bm25')
-        sys.exit()
-
-    indexer(sys.argv[1],sys.argv[2],sys.argv[3])
+        
+    indexer(sys.argv[1], sys.argv[2], sys.argv[3])
     
 def indexer(tokenizer_type, input_file, weighted_indexer_type):
     """
@@ -40,14 +37,13 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
     """
 
     # Some imports, variables and initializations:
-    if tokenizer_type == "-s":
+    if tokenizer_type == "s":
         from indexing.SimpleTokenizer import SimpleTokenizer
         tokenizer = SimpleTokenizer()
-        inverted_spimi = InvertedSpimi("models/simpleTokenizer/", weighted_indexer_type)
     else:
         from indexing.ImprovedTokenizer import ImprovedTokenizer
         tokenizer = ImprovedTokenizer()
-        inverted_spimi = InvertedSpimi("models/improvedTokenizer/", weighted_indexer_type)
+    inverted_spimi = InvertedSpimi(weighted_indexer_type)
     corpus_reader = CorpusReader(input_file)
     total_docs = 0 # total number of documents
     total_tokens = 0 # total number of tokens
@@ -80,8 +76,8 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
         
     # Results:
     write_document_ids_to_file(doc_ids)   
-    print("Indexing time: "+str(indexing_time))
-    print("Total document: "+str(total_docs))
+    print("Indexing time: " + str(indexing_time))
+    print("Total document: " + str(total_docs))
 
     """
         memory_dic = self.format_bytes(weighted_indexer.get_size_in_mem()) # Memory occupied by the structure used
@@ -107,6 +103,7 @@ def write_document_ids_to_file(docsIds):
     """
     with open("models/documentIDs.txt",'w') as file_ids:
         json.dump(docsIds, file_ids)
+    file_ids.close()
 
 def format_bytes(self,size): 
     """

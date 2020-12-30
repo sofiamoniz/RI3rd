@@ -11,10 +11,10 @@ from indexing.WeightedIndexer import WeightedIndexer
 ## Class that will be used as Single-pass in-memory indexer
 class InvertedSpimi:
 
-    def __init__(self,tokenizer_path, weighted_indexer_type):
-        self.tokenizer_path = tokenizer_path
+    def __init__(self, weighted_indexer_type):
         self.weighted_indexer_type = weighted_indexer_type
 
+        self.models_path = "models/"
         self.term_postings_list = {}
         self.block_size = 0 # N documents
         self.block_number = 0 # each block is a directory
@@ -47,7 +47,7 @@ class InvertedSpimi:
         if self.processed_documents == self.block_size: # we processed all documents for this block
             self.block_number += 1 
             self.term_posting_list = self.sort_terms(self.term_postings_list) # sort dictionary by terms, in alphabetic order
-            block_path = self.tokenizer_path + "spimiInverted/block_" + str(self.block_number) + '/'
+            block_path = self.models_path + "spimiInverted/block_" + str(self.block_number) + '/'
             self.block_paths.append(block_path)
             if not os.path.exists(block_path): # create the directory for block if not exists
                 os.makedirs(block_path)
@@ -98,7 +98,7 @@ class InvertedSpimi:
             
             # Construct the Weighted Index from the merged Inverted Index, for this partition:
             weighted_indexer = WeightedIndexer(total_docs, merged_inverted_index, documents_len, total_tokens)
-            if self.weighted_indexer_type == "-bm25": merged_weighted_index = weighted_indexer.bm25()
+            if self.weighted_indexer_type == "bm25": merged_weighted_index = weighted_indexer.bm25()
             else: merged_weighted_index = weighted_indexer.lnc_ltc()
             merged_weighted_index = weighted_indexer.get_weighted_index()
             
@@ -167,7 +167,10 @@ class InvertedSpimi:
         """
         Writes merged segment of all blocks in disk
         """
-        with open(self.tokenizer_path + "mergeWeighted/" + partition[0] + '-' + partition[1] + ".txt", "w") as file:
+        merged_path = self.models_path + "mergedWeighted/"
+        if not os.path.exists(merged_path): # create the directory for block if not exists
+                os.makedirs(merged_path)
+        with open(merged_path + partition[0] + '-' + partition[1] + ".txt", "w") as file:
             for term,index in weighted_index.items():
                 line = "%s;%s;%s\n" % (term, index[0], json.dumps(index[1]))
                 file.write(line)

@@ -18,10 +18,10 @@ class SimpleTokenizer:
         """
         Returns an array with lower cased terms only with alphabetic characters and len 3 or more
         """
-        received_string=self.replace_non_alpha(received_string) # Replace non-alpha chars
-        received_string=received_string.lower().split() # Put all chars to lower          
+        received_string = self.replace_non_alpha(received_string) # Replace non-alpha chars
+        received_string = received_string.lower().split() # Put all chars to lower          
                   
-        return [word for word in received_string if len(word) >=3 ] # Only admit strings with len >=3
+        return [word for word in received_string if len(word) >= 3 ] # Only admit strings with len >=3
 
     def replace_non_alpha(self,old_string): # Used to replace non-alpha chars
         """

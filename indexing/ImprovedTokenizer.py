@@ -53,7 +53,8 @@ class ImprovedTokenizer:
         """
         with open ("indexing/snowball_stopwords_EN.txt", mode='r') as stop_words:
             stop_words_set = set([word.strip() for word in stop_words])
-            
+        stop_words.close()
+        
         return stop_words_set
 
     def characs_same(self,s) :
