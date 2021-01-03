@@ -6,7 +6,7 @@ Autors: Alina Yanchuk, 89093
 """
 
 from sys import getsizeof
-import math
+from math import log10, sqrt
 from collections import defaultdict
 
 
@@ -26,13 +26,17 @@ class WeightedIndexer:
     ## weighted_index = { "term" : [ idf, {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...]],...}],... }
     
     def calc_avgdl(self):
+        """
+        Calculate the Average Document Length foR BM25
+        """
         count=0
         for doc_id in self.documents_len:
             self.avgdl += self.documents_len[doc_id]
             count+=1
         self.avgdl /= count
 
-    # lnc.ltc:
+# lnc.ltc:
+
     def lnc_ltc(self):       
         """
         Calculates the lnc.ltc weights of each document
@@ -41,7 +45,7 @@ class WeightedIndexer:
             docsWeigh = defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...}
             idf_docsWeight = [] # [idf,docWeights_with_lnc_ltc_and_positions]  
                               
-            idf = math.log10(self.total_docs/self.inverted_index[term][0])
+            idf = log10(self.total_docs/self.inverted_index[term][0])
             idf_docsWeight.append(idf)         
 
             doc_pow_sum = defaultdict(int) # This will be used as the normalization factor.
@@ -49,7 +53,7 @@ class WeightedIndexer:
             
             for doc_id in self.inverted_index[term][1]: 
                 tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
-                weight = 1 + math.log10(tf) # this calculates the weight of term-document
+                weight = 1 + log10(tf) # this calculates the weight of term-document
                 doc_pow_sum[doc_id] += weight ** 2 # sum of all the weights of each document
                                                    # each weight to the pow of 2
                                                    # this will be used in the cossine normalization
@@ -57,25 +61,25 @@ class WeightedIndexer:
             # normalization - cossine normalization:
             # the cossine normalization is sqrt the inverse of the sum of all the weights of a document, each one to the pow of 2
             for doc_id in doc_pow_sum:
-                docsWeigh[doc_id][0] = 1 / math.sqrt(doc_pow_sum[doc_id])
+                docsWeigh[doc_id][0] = 1 / sqrt(doc_pow_sum[doc_id])
                         
             idf_docsWeight.append(docsWeigh)
 
             self.weighted_index[term] = idf_docsWeight
-            
 
+# bm25:
 
-    # bm25:
     def bm25(self,  k = 1.2 , b = 0.75): 
         """
         Calculates the bm25 weights of each document
         """   
         self.calc_avgdl() #calculates avgdl only when calling bm25
+
         for term in self.inverted_index: 
             docsWeigh = defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...} 
             idf_docsWeight = [] # [idf, docWeights_with_bm25_and_positions]  
 
-            idf = math.log10(self.total_docs / self.inverted_index[term][0])
+            idf = log10(self.total_docs / self.inverted_index[term][0])
             idf_docsWeight.append(idf)
             for doc_id in self.inverted_index[term][1]: 
                 tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
@@ -87,21 +91,19 @@ class WeightedIndexer:
 
             self.weighted_index[term] = idf_docsWeight
 
+
+## AUXILIAR FUNCTIONS:
+
     def get_weighted_index(self):
         """
         Returns the dictionary with the Weighted Index
         """
         return self.weighted_index             
                 
-    def show_weighted_index(self):
+    def empty_weighted_index(self):
         """
-        Prints the Weighted Index
+        Empty the dictionary in memory
         """
-        print(self.weighted_index) 
+        self.weighted_index = {} 
    
-    def get_size_in_mem(self):
-        """
-        Returns the size of the dictionary with the Weighted Index
-        """
-        return getsizeof(self.weighted_index)
 

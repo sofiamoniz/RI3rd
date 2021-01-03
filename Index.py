@@ -69,7 +69,6 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
 
             inverted_spimi.spimi(tokens,total_docs) # Inverted Spimi for this chunk / block
         
-    
     # Merge of all blocks:
     inverted_spimi.merge_blocks(total_docs, documents_len, total_tokens) 
     with open("models/mergedWeighted/type.txt", "w") as file: # File stores the tokenizer and weighted indexer types used
@@ -79,24 +78,10 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
     indexing_time = time.time() - start_time
         
     # Results:
-    write_document_ids_to_file(doc_ids)   
-    print("Indexing time: " + str(indexing_time))
-    print("Total document: " + str(total_docs))
-
-    """
-        memory_dic = self.format_bytes(weighted_indexer.get_size_in_mem()) # Memory occupied by the structure used
-        # Print results:
-        if(self.tokenizer_type=="-s"):
-            print("\n    Tokenizer used: Simple     Ranking Method: "+self.weighted_indexer_type[1:]+"\n"
-                    +"\n--- Indexation time:  %s seconds." % (round(indexing_time,3))
-                    +"\n--- Size in memory used by the dictionary structure:  %s %s." % (round(memory_dic[0],3), memory_dic[1])
-                    + "\n--- File with the Weighted Index: models/simpleTokenizer/weightedIndex_"+self.weighted_indexer_type[1:]+".txt")
-        else:
-            print("\n    Tokenizer used: Improved     Ranking Method: "+self.weighted_indexer_type[1:]+"\n"
-                    +"\n--- Indexation time:  %s seconds." % (round(indexing_time,3))
-                    +"\n--- Size in memory used by the dictionary structure:  %s %s." % (round(memory_dic[0],3), memory_dic[1])
-                    + "\n--- File with the Weighted Index: models/improvedTokenizer/weightedIndex_"+self.weighted_indexer_type[1:]+".txt")
-    """
+    write_document_ids_to_file(doc_ids)
+    print("Number of documents: " + str(total_docs))
+    print("Indexation time:  %s seconds" % (round(indexing_time,3)))
+    print("Blocks of Inverted Index in results/spimiInverted    and    Merged and Weighted Blocks in results/mergedWeighted")
 
 
 ## AUXILIAR FUNCTIONS:

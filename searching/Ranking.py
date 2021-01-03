@@ -30,7 +30,7 @@ class Ranking:
         self.queries_latency = {} # latency of each query
         self.latency_time_weight_queries = {} # only for lnc.ltc because the process have 2 parts
 
-    # lnc.ltc:
+# lnc.ltc:
 
     def weight_queries_lnc_ltc(self):
         """
@@ -88,8 +88,7 @@ class Ranking:
 
             self.queries_latency[i + 1] = weight_time + score_time # i+1 because in the evaluation part the id for the queries starts at 1
 
-
-    # bm25:
+# bm25:
 
     def score_bm25(self): #passar arg a true se quisermos considerar
         """
@@ -118,8 +117,7 @@ class Ranking:
             query_latency_time = time.time() - start_time
             self.queries_latency[self.queries.index(query) + 1] = query_latency_time # i+1 because in the evaluation part the id for the queries starts at 1
 
-
-    # Proximity:
+# Proximity:
 
     def proximity(self, query_terms , docs_scores_for_query):
         proximity_score_dict = {} # dictionary that contains the document ID and its proximity score
@@ -175,7 +173,7 @@ class Ranking:
         return total_score # score of the 2 terms according to the distance between them
     
 
-    ## AUXILIAR FUNCTIONS:
+## AUXILIAR FUNCTIONS:
 
     def tokenize(self, queries):
         """
@@ -186,7 +184,6 @@ class Ranking:
             tokenized_query = self.tokenizer.tokenize(query)
             tokenized_queries.append(tokenized_query)
         return tokenized_queries
-
 
     def construct_weighted_index(self):
         """
@@ -206,14 +203,12 @@ class Ranking:
                 file.close()
         return weighted_index 
 
-
     def char_range(self, first_char, last_char): 
         """
         Generates the characters from first_char to last_char, inclusive.
         """
         for c in range(ord(first_char), ord(last_char)+1):
             yield chr(c)
-
 
     def get_weighted_file(self, term_char):
         """

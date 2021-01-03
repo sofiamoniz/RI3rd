@@ -5,7 +5,8 @@ Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
 
-import os, collections, json
+import os, json
+from collections import defaultdict
 from indexing.WeightedIndexer import WeightedIndexer
 
 ## Class that will be used as Single-pass in-memory indexer
@@ -22,7 +23,6 @@ class InvertedSpimi:
         self.partitions = [('a','f'),('g','p'),('q','z')] # each block/directory has segment files, partitioned by this range
         self.block_paths = [] 
         
-
     def spimi(self, document, document_id):
         """
         Applies the SPIMI invert algorithm (with term positions) for this block of N documents.
@@ -67,7 +67,7 @@ class InvertedSpimi:
         """  
         for partition in self.partitions: 
 
-            merged_inverted_index = collections.defaultdict(list)
+            merged_inverted_index = defaultdict(list)
             merged_weighted_index = {}
 
             # Merge all parts of the Inverted Indexes from SPIMI, for this partition:
@@ -104,6 +104,7 @@ class InvertedSpimi:
             
             # Write the Weighted Index, for this partition, to a file:
             self.write_merged_block_to_disk(partition, merged_weighted_index)
+            weighted_indexer.empty_weighted_index() # empty in memory
                 
 
 ## AUXILIAR FUNCTIONS:
@@ -154,7 +155,7 @@ class InvertedSpimi:
         with open(segment_file , "w") as file:
             for term, posting_list in dictionary.items():
                 inverted_index = []
-                docs_freq = collections.defaultdict(list)
+                docs_freq = defaultdict(list)
                 for posting in posting_list:
                     docs_freq[posting[0]].append(posting[1])
                 inverted_index.append(len(docs_freq))

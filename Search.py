@@ -6,6 +6,7 @@ Autors: Alina Yanchuk, 89093
 """
 
 import sys, os, getopt, time, json
+from statistics import mean, median
 from searching.Ranking import Ranking
 from searching.Evaluation import Evaluation
 
@@ -17,7 +18,13 @@ def main():
         print ("\nUsage:\n\n   Search.py <tokenizer> <csv_file> <ranking_type> <numberOfDocsToReturn> <consider_proximity>\n\n Example: Search.py i metadata.csv bm25 50 consider_proximity\n       or Search.py s metadata.csv lnc_ltc 50\n")
         sys.exit()
     else:
-        if not float(sys.argv[4]).is_integer():
+        if sys.argv[1] != "s" and sys.argv[1] != "i" :
+            print("Invalid tokenizer type! Must be 's' or 'i'.")
+            sys.exit()
+        elif sys.argv[3] != "bm25" and sys.argv[3] != "lnc_ltc" :
+            print("Invalid ranking type! Must be 'bm25' or 'lnc_ltc'.")
+            sys.exit()
+        elif not float(sys.argv[4]).is_integer():
             print("Invalid number of documents to return per query! Must be an integer.")
             sys.exit()
         if len(sys.argv) == 6: 
@@ -31,14 +38,12 @@ def main():
         # if models/mergedWeighted don't exist 
         # or exist, but the Weighted Index was not constructed with the same tokenizer and ranking types choosen by the user in this program
         # then run indexing part
-            print("running indexing part")
+            print("Running indexing program...\n")
             from Index import indexer # indexing program
-            import glob # to get the csv file
             indexer(sys.argv[1], sys.argv[2], sys.argv[3])
+        
         retrieval_engine(sys.argv[1], sys.argv[3], sys.argv[4], consider_proximity) 
        
-                
-
 def retrieval_engine(tokenizer, ranking_type, number_of_docs_to_return, consider_proximity):
     """
     Searches the query terms and returns the retrieved ordered documents, based on the ranking type choosen. Writes results to files.
@@ -54,9 +59,9 @@ def retrieval_engine(tokenizer, ranking_type, number_of_docs_to_return, consider
     """
 
     # Read from files to memory:
-    queries = read_queries_file("queries.txt") # queries = [ query1, query2, query3,...]
+    queries = read_queries_file("searching/queries.txt") # queries = [ query1, query2, query3,...]
     real_doc_ids = read_doc_ids_file('models/documentIDs.txt') # real_doc_ids = { doc1_generated Id : doc1_real_Id, ... }
-    relevances = read_relevances_file("queries.relevance.filtered.txt") # { query1_id : { doc1_real_Id: relevance, doc2_real_Id: relevance,...},...}
+    relevances = read_relevances_file("searching/queries.relevance.filtered.txt") # { query1_id : { doc1_real_Id: relevance, doc2_real_Id: relevance,...},...}
     
     # Some variables and initializations:
     scores_for_evaluation = {} # { query1_id : { doc1_real_Id : score , doc2_real_Id: score,...},...}
@@ -72,8 +77,7 @@ def retrieval_engine(tokenizer, ranking_type, number_of_docs_to_return, consider
         ranking.score_bm25() # no need to weight the queries
     queries_processing = time.time() - start_queries_processing
     queries_latency = ranking.queries_latency # latency of each query
-
-
+    
     # Write TOP N results (for each query) to file and create dictionary with N scores for evaluation:
     with open("results/ranking_" + ranking_type + ".txt", 'w') as file_ranking:
         file_ranking.write("***  TOP " + number_of_docs_to_return + " RETURNED DOCUMENTS *** ")
@@ -100,20 +104,37 @@ def evaluate(top, relevances, scores_for_evaluation, queries_processing, ranking
     """
     Evaluates the retrieval engine with some relevant metrics
     """
-    print("\nEvaluation TOP " + top + " :\n")
 
     evaluation = Evaluation(relevances, scores_for_evaluation)
-        
-    evaluation.mean_precision_recall()
-    evaluation.mean_f1()
-    evaluation.mean_average_precision()
-    evaluation.mean_ndcg()
-    evaluation.query_throughput(queries_processing)
-    evaluation.mean_latency(queries_latency)
+
+    for query_id in scores_for_evaluation:
+        evaluation.precision_recall(query_id)
+        evaluation.f1(query_id)
+        evaluation.average_precision(query_id)
+        evaluation.ndcg(query_id)
+
+    print("\nEvaluation TOP " + top + " :\n")
+    print("Mean Precision -> ", round(mean(list(evaluation.queries_precision.values())), 3))
+    print("Mean Recall ->  ", round(mean(list(evaluation.queries_recall.values())), 3))
+    print("Mean F-Measure -> ", round(mean(list(evaluation.queries_f1.values())), 3))
+    print("MAP -> ", round(mean(list(evaluation.queries_average_precision.values())), 3))
+    print("Mean NDGC -> ", round(mean(list(evaluation.queries_ndcg.values())), 3))
+    print("Query throughput -> " + str(round(len(list(scores_for_evaluation.keys())) / queries_processing))+ " queries per second")
+    print("Median of Queries Latency -> " + str(round(median(list(queries_latency.values())), 3)) + " seconds")
 
     print("\nRetrieved documents, for each query, in: " + "results/ranking_" + ranking_type + ".txt\n")
-    
 
+    import csv
+    with open('results/evaluation_' + ranking_type + '.csv', mode='w') as file:
+        writer = csv.writer(file)
+        writer.writerow(
+            [" ", "Precision", "Recall", "F-Measure", "Avg Precision", "Ndcg", "Latency" ])
+        writer.writerow(
+            ["Query", "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top) ])
+        for i in range(1,51):
+            writer.writerow([i, round(evaluation.queries_precision[str(i)], 3), round(evaluation.queries_recall[str(i)], 3), round(evaluation.queries_f1[str(i)], 3), round(evaluation.queries_average_precision[str(i)], 3), round(evaluation.queries_ndcg[str(i)], 3), round(queries_latency[i], 3)])
+
+    
 ## AUXILIAR FUNCTIONS: 
 
 def check_index(tokenizer, ranking):

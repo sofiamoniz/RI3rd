@@ -5,7 +5,7 @@ Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
 
-import re
+from re import sub
 
 ## Class that acts as the Simple Tokenizer
 class SimpleTokenizer:
@@ -13,7 +13,6 @@ class SimpleTokenizer:
     def __init__(self):
         pass
     
-
     def tokenize(self, received_string):
         """
         Returns an array with lower cased terms only with alphabetic characters and len 3 or more
@@ -27,6 +26,6 @@ class SimpleTokenizer:
         """
         Replaces the non-alpha characters of the text by space
         """
-        new_string = re.sub('[^a-zA-Z]+', ' ', old_string) 
+        new_string = sub('[^a-zA-Z]+', ' ', old_string) 
 
         return new_string

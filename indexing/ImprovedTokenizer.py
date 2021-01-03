@@ -5,22 +5,21 @@ Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
 
-import re
-import Stemmer
+from re import sub
+from Stemmer import Stemmer
 
 ## Class that acts as the Improved Tokenizer
 class ImprovedTokenizer:
 
     def __init__(self):
-        self.stemmer = Stemmer.Stemmer('english') # stemmer
+        self.stemmer = Stemmer('english') # stemmer
         self.stop_words = self.set_stop_words() # set of stop words
-
 
     def tokenize(self,received_string):
         """
         Returns an array with treated and tokenized terms (without numbers,repeated sequences of chars, treated URLs, len bigger than 3 (after PorterStemmer), and so on...)
         """
-        word_tokens= re.sub('[^a-zA-Z]+', ' ', received_string).lower().split() # Transform the received string in tokens, by using the function word_tokenize from library ntlk
+        word_tokens= sub('[^a-zA-Z]+', ' ', received_string).lower().split() # Transform the received string in tokens, by using the function word_tokenize from library ntlk
         filtered_sentence = [] 
         
         for w in word_tokens:
