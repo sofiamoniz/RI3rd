@@ -12,9 +12,10 @@ from indexing.WeightedIndexer import WeightedIndexer
 ## Class that will be used as Single-pass in-memory indexer
 class InvertedSpimi:
 
-    def __init__(self, weighted_indexer_type):
+    def __init__(self, weighted_indexer_type, proximity):
         self.weighted_indexer_type = weighted_indexer_type
-
+        self.proximity = proximity
+        
         self.models_path = "models/"
         self.term_postings_list = {}
         self.block_size = 0 # N documents
@@ -33,18 +34,20 @@ class InvertedSpimi:
         """
 
         # Create the dictionary, for this block, with terms and their posting list:
-        term_position = 0 # position of token/term in this document
+        if self.proximity == True: term_position = 0 # position of token/term in this document
         self.processed_documents += 1
         for token in document: 
             if token not in self.term_postings_list:
                 postings_list = self.add_to_dict(self.term_postings_list, token) 
             else:
                 postings_list = self.get_postings_list(self.term_postings_list, token) 
-            self.add_to_postings_list(postings_list, document_id, term_position) 
-            term_position += 1
+            if self.proximity == True: self.add_to_postings_list(postings_list, document_id, term_position) 
+            else: self.add_to_postings_list(postings_list, document_id) 
+            try: term_position += 1
+            except: pass
             
         # Sort terms and write block (partitioned in segments) to disk:
-        if self.processed_documents == self.block_size: # we processed all documents for this block
+        if self.memory_full(self.processed_documents): # we processed all documents for this block = memory full
             self.block_number += 1 
             self.term_posting_list = self.sort_terms(self.term_postings_list) # sort dictionary by terms, in alphabetic order
             block_path = self.models_path + "spimiInverted/block_" + str(self.block_number) + '/'
@@ -115,24 +118,28 @@ class InvertedSpimi:
         """
         self.block_size = block_size
 
-    def add_to_dict(self,dictionary,term):
+    def add_to_dict(self, dictionary, term):
         """
         Adds term to the dictionary
         """
         dictionary[term] = []
         return dictionary[term]
 
-    def get_postings_list(self,dictionary,term):
+    def get_postings_list(self, dictionary, term):
         """
         Gets postings list for a given term
         """
         return dictionary[term]
 
-    def add_to_postings_list(self, postings_list, document_id, term_position):
+    def add_to_postings_list(self, postings_list, document_id, term_position = None):
         """
         Adds document ID and term position to the postings list
         """
-        postings_list.append((document_id,term_position))
+        postings_list.append((document_id, term_position))
+    
+    def memory_full(self, processed_documents):
+        if processed_documents == self.block_size: return True
+        return False
 
     def sort_terms(self,dictionary):
         """
@@ -155,9 +162,15 @@ class InvertedSpimi:
         with open(segment_file , "w") as file:
             for term, posting_list in dictionary.items():
                 inverted_index = []
-                docs_freq = defaultdict(list)
-                for posting in posting_list:
-                    docs_freq[posting[0]].append(posting[1])
+                if self.proximity == True: 
+                    docs_freq = defaultdict(list)
+                    for posting in posting_list:
+                        docs_freq[posting[0]].append(posting[1])
+                else: 
+                    docs_freq = defaultdict(int)
+                    for posting in posting_list:
+                        docs_freq[posting[0]] += 1
+                
                 inverted_index.append(len(docs_freq))
                 inverted_index.append(docs_freq)
                 line = "%s;%s;%s\n" % (term, inverted_index[0], json.dumps(inverted_index[1]))
@@ -177,7 +190,3 @@ class InvertedSpimi:
                 file.write(line)
         file.close()
         
-
-
-    
-  

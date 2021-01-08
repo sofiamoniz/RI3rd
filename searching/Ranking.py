@@ -24,7 +24,8 @@ class Ranking:
         self.queries = self.tokenize(queries) # [ query1_tokenized, ...]
         self.consider_proximity = consider_proximity
 
-        self.weighted_index = self.construct_weighted_index() # read weighted index to memory
+        self.weighted_index = {} # will store weighted index from disk
+        self.partitions_in_memory = [] # index partitions in memory
         self.weighted_queries = [] # only for lnc.ltc
         self.scores = [] # scores of documents for each query
         self.queries_latency = {} # latency of each query
@@ -47,6 +48,18 @@ class Ranking:
                 weighted_query[term] = weighted_query[term] + 1 # tf on query
 
             for term in weighted_query:
+
+                index_in_memory = False
+                for partition in self.partitions_in_memory:
+                    if term[0] in self.char_range(partition[0], partition[1]):
+                        index_in_memory = True
+                        break
+                if index_in_memory == False:
+                    if self.memory_full(): # there is no memory available to store more index parts
+                        self.partitions_in_memory = [] # empty all
+                        self.weighted_index = {}
+                    self.weighted_index.update(self.get_weighted_index(term))
+                
                 if term in self.weighted_index.keys(): # if the term exists on any document   
                     weighted_query[term] = (1 + log10(weighted_query[term])) * self.weighted_index[term][0] # self.weighted_index[term][0] -> idf of the term 
  
@@ -102,17 +115,29 @@ class Ranking:
             query_length = 0      
             
             for term in query: 
+
+                index_in_memory = False
+                for partition in self.partitions_in_memory:
+                    if term[0] in self.char_range(partition[0], partition[1]):
+                        index_in_memory = True
+                        break
+                if index_in_memory == False:
+                    if self.memory_full(): # there is no memory available to store more index parts
+                        self.partitions_in_memory = [] # empty all
+                        self.weighted_index = {}
+                    self.weighted_index.update(self.get_weighted_index(term))
+                
                 if term in self.weighted_index:  # if term exists in any document
-                    for doc_id,doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
-                        doc_weight = doc_weight_pos[0]               
-                        docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + doc_weight
-         
-            docs_scores_for_query = {k: v for k, v in sorted(docs_scores_for_query.items(), key = lambda item: item[1], reverse = True)} # order by score ( decreasing order )
-            
+                        for doc_id,doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
+                            doc_weight = doc_weight_pos[0]               
+                            docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + doc_weight
+
             if self.consider_proximity:                
-                self.scores.append(self.proximity(query, docs_scores_for_query))
-            else:
-                self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
+                docs_scores_for_query = self.proximity(query, docs_scores_for_query)
+            
+            docs_scores_for_query = {k: v for k, v in sorted(docs_scores_for_query.items(), key = lambda item: item[1], reverse = True)} # order by score ( decreasing order )
+
+            self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
             
             query_latency_time = time.time() - start_time
             self.queries_latency[self.queries.index(query) + 1] = query_latency_time # i+1 because in the evaluation part the id for the queries starts at 1
@@ -120,7 +145,7 @@ class Ranking:
 # Proximity:
 
     def proximity(self, query_terms , docs_scores_for_query):
-        proximity_score_dict = {} # dictionary that contains the document ID and its proximity score
+        proximity_score_dict = defaultdict(int) # dictionary that contains the document ID and its proximity score
         tp_score = {}
         for q_term in range(len(query_terms) - 1):
             proximity_terms = query_terms[q_term:q_term + 2] #verify the proximity of the terms 2 by 2
@@ -130,41 +155,27 @@ class Ranking:
                     if docID in self.weighted_index[proximity_terms[1]][1]:                      
                         numerator_score = self.check_proximity(proximity_terms[0],proximity_terms[1],
                                                            docID)
-                    try:
-                        proximity_score_dict[docID]+=numerator_score
-                    except KeyError:
-                        proximity_score_dict[docID]=numerator_score
+                    proximity_score_dict[docID] += numerator_score
+                    
         #for doc_id,prox_score in proximity_score_dict.items():
-        #    tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
+         #   tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
         for doc_id in docs_scores_for_query:
             if doc_id in proximity_score_dict:
                 tp_score[doc_id] = proximity_score_dict[doc_id] + docs_scores_for_query[doc_id]
             else:
                 tp_score[doc_id] = docs_scores_for_query[doc_id]
-        return {k: v for k, v in sorted(tp_score.items(), key=lambda item: item[1], reverse=True)} # order by score ( decreasing order )          
+        return tp_score
 
     def check_proximity(self,term1,term2,DocID):
         pos_doc_term1 = []
         pos_doc_term2 = []
         total_score = 0.0
-        pos_doc_term1 = self.weighted_index[term1][1][DocID][1] #positions of term in that doc
+        pos_doc_term1 = self.weighted_index[term1][1][DocID][1] # positions of term in that doc
         pos_doc_term2 = self.weighted_index[term2][1][DocID][1]
         for pos in pos_doc_term1:
             termscore = 0.0
-            if pos+1 in pos_doc_term2: #dar os scores q quisermos (?)
-                termscore = 1.0
-            elif pos+2 in pos_doc_term2:
-                termscore = 0.95
-            elif pos+3 in pos_doc_term2:
-                termscore = 0.9
-            elif pos+4 in pos_doc_term2:
-                termscore = 0.60
-            elif pos+5 in pos_doc_term2:
-                termscore = 0.30
-            elif pos+6 in pos_doc_term2:
-                termscore= 0.15
-            elif pos+7 in pos_doc_term2:
-                termscore = 0.05
+            if pos+1 in pos_doc_term2: # dar os scores q quisermos (?)
+                return True
             total_score += termscore
             #há algumas queries em q as palavras estão tão distantes q ele nem lhe dá score
             #não sei se é suposto ser assim ou se temos que atribuir mais scores super baixinhos
@@ -185,22 +196,22 @@ class Ranking:
             tokenized_queries.append(tokenized_query)
         return tokenized_queries
 
-    def construct_weighted_index(self):
+    def get_weighted_index(self, term):
         """
-        Constructs the Weighted Index, only for the terms that appear on queries, from the files in disk
+        Constructs the Weighted Index, for a certain partition, based on the first letter of term received as argument, from the files in disk
         """
-        weighted_index = {} #{ "term" : [ idf, {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...]],...}],... }
-        for query in self.queries:
-            for term in query:
-                file = open(self.get_weighted_file(term[0]), 'r')
-                for line in file:
-                    tokens=line.rstrip().split(';')
-                    if tokens[0] == term and term not in weighted_index:
-                        idf=float(tokens[1])
-                        tokens[2]=tokens[2].replace('\'','\"')
-                        weights_pos=json.loads(tokens[2])
-                        weighted_index[term] = [idf,weights_pos]
-                file.close()
+        weighted_index = {} # { "term" : [ idf, {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...]],...}],... }
+        partition_file, partition = self.get_weighted_file(term[0])
+        self.partitions_in_memory.append(partition)
+        file = open(partition_file, 'r')
+        for line in file:
+            tokens=line.rstrip().split(';')
+            term = tokens[0]
+            idf = float(tokens[1])
+            tokens[2] = tokens[2].replace('\'','\"')
+            weights_pos = json.loads(tokens[2])
+            weighted_index[term] = [idf,weights_pos]
+        file.close()
         return weighted_index 
 
     def char_range(self, first_char, last_char): 
@@ -215,8 +226,11 @@ class Ranking:
         Returns the file with the part of Weighted Index that contains the partition where the term_char fits
         """
         if term_char in self.char_range("a","f"):
-            return "models/mergedWeighted/a-f.txt"
+            return ("models/mergedWeighted/a-f.txt", ("a", "f"))
         elif term_char in self.char_range("g","p"):
-            return "models/mergedWeighted/g-p.txt"
+            return ("models/mergedWeighted/g-p.txt", ("g", "p"))
         else:
-            return "models/mergedWeighted/q-z.txt"
+            return ("models/mergedWeighted/q-z.txt", ("q", "z"))
+
+    def memory_full(self):
+        return False

@@ -52,7 +52,8 @@ class WeightedIndexer:
                           # This is a default dictionary so that if a certain value doesn't exist, it will have a default value of 0
             
             for doc_id in self.inverted_index[term][1]: 
-                tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
+                try: tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
+                except: tf = self.inverted_index[term][1][doc_id]
                 weight = 1 + log10(tf) # this calculates the weight of term-document
                 doc_pow_sum[doc_id] += weight ** 2 # sum of all the weights of each document
                                                    # each weight to the pow of 2
@@ -82,7 +83,8 @@ class WeightedIndexer:
             idf = log10(self.total_docs / self.inverted_index[term][0])
             idf_docsWeight.append(idf)
             for doc_id in self.inverted_index[term][1]: 
-                tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
+                try: tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
+                except: tf = self.inverted_index[term][1][doc_id]
                 docsWeigh[doc_id][0] += (idf * tf * (k+1)
                       / (tf + k * (1 - b + b * self.documents_len[int(doc_id)] / self.avgdl))) # bm25 formula
                 docsWeigh[doc_id][1] = self.inverted_index[term][1][doc_id] # list with term positions in this doc

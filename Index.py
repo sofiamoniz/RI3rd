@@ -13,13 +13,16 @@ def main():
     """ 
     Gets the arguments and runs the indexing program 
     """
-    if len(sys.argv) != 4 or (sys.argv[1] != "i" and sys.argv[1] != "s") or (sys.argv[3] != "bm25" and sys.argv[3] != "lnc_ltc"): 
-        print ("\nUsage:\n\n   Index.py <tokenizer> <csv_file> <ranking_type>\n\n Example: python3 Index.py i metadata.csv bm25\n       or python3 Index.py s metadata.csv lnc_ltc\n")
+    if len(sys.argv) > 5 or len(sys.argv) < 4 or (sys.argv[1] != "i" and sys.argv[1] != "s") or (sys.argv[3] != "bm25" and sys.argv[3] != "lnc_ltc"): 
+        print ("\nUsage:\n\n   Index.py <tokenizer> <csv_file> <ranking_type> <consider_proximity>\n\n Example: python3 Index.py i metadata.csv bm25 consider_proximity\n       or python3 Index.py s metadata.csv lnc_ltc\n")
         sys.exit()
+    else:
+        if len(sys.argv) == 4: proximity = False
+        else: proximity = True
         
-    indexer(sys.argv[1], sys.argv[2], sys.argv[3])
+    indexer(sys.argv[1], sys.argv[2], sys.argv[3], proximity)
     
-def indexer(tokenizer_type, input_file, weighted_indexer_type):
+def indexer(tokenizer_type, input_file, weighted_indexer_type, proximity):
     """
     Index the documents with SPIMI and writes/prints results
         
@@ -43,7 +46,7 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
     else:
         from indexing.ImprovedTokenizer import ImprovedTokenizer
         tokenizer = ImprovedTokenizer()
-    inverted_spimi = InvertedSpimi(weighted_indexer_type)
+    inverted_spimi = InvertedSpimi(weighted_indexer_type, proximity)
     corpus_reader = CorpusReader(input_file)
     total_docs = 0 # total number of documents
     total_tokens = 0 # total number of tokens
@@ -72,7 +75,7 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type):
     # Merge of all blocks:
     inverted_spimi.merge_blocks(total_docs, documents_len, total_tokens) 
     with open("models/mergedWeighted/type.txt", "w") as file: # File stores the tokenizer and weighted indexer types used
-        line = "%s %s" % (tokenizer_type, weighted_indexer_type)
+        line = "%s %s %s" % (tokenizer_type, weighted_indexer_type, proximity)
         file.write(line)
     file.close()
     indexing_time = time.time() - start_time

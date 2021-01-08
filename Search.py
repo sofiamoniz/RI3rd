@@ -34,13 +34,13 @@ def main():
             else: 
                 consider_proximity = True
         else: consider_proximity = False
-        if (not os.path.exists('models/mergedWeighted')) or (os.path.exists('models/mergedWeighted') and check_index(sys.argv[1], sys.argv[3]) != True): 
+        if (not os.path.exists('models/mergedWeighted')) or ((os.path.exists('models/mergedWeighted') and check_index(sys.argv[1], sys.argv[3], consider_proximity) != True)) : 
         # if models/mergedWeighted don't exist 
         # or exist, but the Weighted Index was not constructed with the same tokenizer and ranking types choosen by the user in this program
         # then run indexing part
             print("Running indexing program...\n")
             from Index import indexer # indexing program
-            indexer(sys.argv[1], sys.argv[2], sys.argv[3])
+            indexer(sys.argv[1], sys.argv[2], sys.argv[3], consider_proximity)
         
         retrieval_engine(sys.argv[1], sys.argv[3], sys.argv[4], consider_proximity) 
        
@@ -131,21 +131,21 @@ def evaluate(top, relevances, scores_for_evaluation, queries_processing, ranking
             [" ", "Precision", "Recall", "F-Measure", "Avg Precision", "Ndcg", "Latency" ])
         writer.writerow(
             ["Query", "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top) ])
-        for i in range(1,51):
+        for i in range(1,len(queries_latency)):
             writer.writerow([i, round(evaluation.queries_precision[str(i)], 3), round(evaluation.queries_recall[str(i)], 3), round(evaluation.queries_f1[str(i)], 3), round(evaluation.queries_average_precision[str(i)], 3), round(evaluation.queries_ndcg[str(i)], 3), round(queries_latency[i], 3)])
 
     
 ## AUXILIAR FUNCTIONS: 
 
-def check_index(tokenizer, ranking):
+def check_index(tokenizer, ranking, proximity):
     """
-    Returns True if the tokenizer and ranking choosen by the user are the same as the ones used 
+    Returns True if the tokenizer, ranking and proximity choosen by the user are the same as the ones used 
     to construct the Weighted Index in memory
     """
     file = open("models/mergedWeighted/type.txt", 'r')
     for line in file:
         line = line.split()
-        if line[0] == tokenizer and line[1] == ranking:
+        if line[0] == tokenizer and line[1] == ranking and line[2] == str(proximity):
             file.close()
             return True
         file.close()
