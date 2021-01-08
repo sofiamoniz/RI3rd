@@ -63,7 +63,7 @@ def indexer(tokenizer_type, input_file, weighted_indexer_type, proximity):
         inverted_spimi.set_block_size(len(chunk)) # block size will be the size of the chunk (= N documents)
         for document in chunk:  
             real_id, title, abstract = document[0], document[1], document[2]
-            title_abstract = title + abstract
+            title_abstract = title + " " + abstract
             tokens = tokenizer.tokenize(title_abstract) # tokenize
             total_docs += 1 # will also be used as generated ID for this document 
             total_tokens += len(tokens) 

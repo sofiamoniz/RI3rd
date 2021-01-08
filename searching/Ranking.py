@@ -135,7 +135,7 @@ class Ranking:
 
             if self.consider_proximity:                
                 #docs_scores_for_query = self.proximity(query, docs_scores_for_query)
-                docs_scores_for_query= self.proximity_try(query, docs_scores_for_query)
+                docs_scores_for_query = self.proximity(query, docs_scores_for_query)
             
             docs_scores_for_query = {k: v for k, v in sorted(docs_scores_for_query.items(), key = lambda item: item[1], reverse = True)} # order by score ( decreasing order )
 
@@ -146,11 +146,7 @@ class Ranking:
 
 # Proximity:
 
-    ##############################################################
-    ## funções das combinações ##
-    ##############################################################
-
-    def proximity_try(self,query_terms, docs_scores_for_query):
+    def proximity(self, query_terms, docs_scores_for_query):
         docID_term = {} #para ver quais os termos q estão no mesmo doc
         proximity_score_dict = defaultdict(int) # dictionary that contains the document ID and its proximity score
         tp_score = {}
@@ -164,26 +160,36 @@ class Ranking:
                         tmp = docID_term[docID]
                         tmp.append(term)
                         docID_term[docID] = tmp
+                        
         for docID, terms in docID_term.items():
             term_pos = {}
             for term in terms:
                 term_pos[term] = self.weighted_index[term][1][docID][1] #ir buscar as posiçoes do termo naquele documento
-            #para cada documento vamos calcular a min_window destes termos
-            #ate aqui acho q faz sentido, agora calcular a min_window acho q tá mal
-
-            """
-            #DESCOMENTAR PARA CALCULO DA MIN WINDOW COM AS FUNCS DO REP de ontem
+ 
             min_window = self.calculate_min_window(term_pos)
-            #proximity_score_dict[docID] += self.calculate_boost(min_window)
-            """
+            proximity_score_dict[docID] += min_window * 0.1
             
-            #calculo com as combinaçoes
-            if (len(term_pos) > 1): #se o documento tiver mais que um termo daquela query, calcula-se a proximidade deles
-                proximity_score_dict[docID] += self.check_proximity_combinations(term_pos)
-
         for doc_id,prox_score in proximity_score_dict.items():
             tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
         return tp_score
+
+    def calculate_min_window(self, pos_term):
+        if len(pos_term) == 0: return 0
+        minWindow = 1
+        all_pos = []
+        for term, positions in pos_term.items():
+            all_pos += positions
+        for i in range(len(all_pos)):
+            for j in range(i + 1, len(all_pos)):
+                if all_pos[j] == all_pos[i] + 1: minWindow += 1
+
+        return minWindow
+    """
+    ##############################################################
+    ## funções das combinações ##
+    ##############################################################
+
+
 
     def check_proximity_combinations(self, term_pos):
         #uma forma estupida que pensei para calcular a min window 
@@ -218,52 +224,17 @@ class Ranking:
     ##############################################################
     ## estas duas funções eram as do repositorio de ontem ##
     ##############################################################
+    
+    def calculate_min_window(self, pos_term):
+        if len(pos_term) == 0: return 0
+        minWindow = 1
+        all_pos = []
+        for term, positions in pos_term.items():
+            all_pos += positions
+        for i in range(len(all_pos)):
+            for j in range(i + 1, len(all_pos)):
+                if all_pos[j] == all_pos[i] + 1: minWindow += 1
 
-    def calculate_min_window(self, term_pos):
-        x = 0
-        y = 0
-        window = (x, y)
-        windows = []
-        minWindow = 9999999
-
-        if(len(term_pos) == 1):
-            return minWindow
-        
-        #Calculate maximum position among all terms
-        maxValue = 0
-        i = 0
-        for key in term_pos:
-            term_pos[key].sort()
-            value = int(max(term_pos[key]))
-            if(i == 0):
-                maxValue = value
-            else:
-                if(value > maxValue):
-                    maxValue = value
-            i=i+1
-
-        #Calculate all possible window                      
-        while(y <= maxValue and x <= maxValue):
-            if(self.isFeasible(term_pos, window) == True):
-                windows.append(window)
-                x = x+1
-                window = (x, y)
-            else:
-                y = y+1
-                window = (x, y)
-
-        #Calculate minimum possible window    
-        minWindow = 0
-        for i in range(len(windows)):
-            if(len(windows) == 0):
-                break
-            win = windows[i][1] - windows[i][0] + 1
-            if(i == 0):
-                minWindow = win
-            else:
-                if(win < minWindow):
-                    minWindow = win
-                    
         return minWindow
         
     #check if given window contains all the terms present atleast once
@@ -325,7 +296,7 @@ class Ranking:
         
         return total_score # score of the 2 terms according to the distance between them
     
-
+    """
 ## AUXILIAR FUNCTIONS:
 
     def tokenize(self, queries):

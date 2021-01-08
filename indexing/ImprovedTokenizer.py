@@ -15,7 +15,7 @@ class ImprovedTokenizer:
         self.stemmer = Stemmer('english') # stemmer
         self.stop_words = self.set_stop_words() # set of stop words
 
-    def tokenize(self,received_string):
+    def tokenize(self, received_string):
         """
         Returns an array with treated and tokenized terms (without numbers,repeated sequences of chars, treated URLs, len bigger than 3 (after PorterStemmer), and so on...)
         """
@@ -23,7 +23,7 @@ class ImprovedTokenizer:
         filtered_sentence = [] 
         
         for w in word_tokens:
-            if w not in self.stop_words and len(w)>=3:
+            if w not in self.stop_words and len(w) >= 3:
                 if self.is_website(w): #If the string is a website, it will be treated in order to give only the important part
                     parse_object = urlparse(w)
                     if (parse_object.netloc != ''): filtered_sentence.append(parse_object.netloc.split('.')[1]) # This condition is made to transfrom a website and give the user only the 
