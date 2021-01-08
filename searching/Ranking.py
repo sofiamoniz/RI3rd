@@ -171,11 +171,13 @@ class Ranking:
             #para cada documento vamos calcular a min_window destes termos
             #ate aqui acho q faz sentido, agora calcular a min_window acho q tá mal
 
-            ##DESCOMENTAR PARA CALCULO DA MIN WINDOW####
-            #min_window = self.calculate_min_window(term_pos)
+            """
+            #DESCOMENTAR PARA CALCULO DA MIN WINDOW COM AS FUNCS DO REP de ontem
+            min_window = self.calculate_min_window(term_pos)
             #proximity_score_dict[docID] += self.calculate_boost(min_window)
-            ######################################
+            """
             
+            #calculo com as combinaçoes
             if (len(term_pos) > 1): #se o documento tiver mais que um termo daquela query, calcula-se a proximidade deles
                 proximity_score_dict[docID] += self.check_proximity_combinations(term_pos)
 
