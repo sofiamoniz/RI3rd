@@ -10,6 +10,7 @@ from indexing.SimpleTokenizer import SimpleTokenizer
 from collections import defaultdict
 from math import pow, log10, sqrt
 import time, sys, json
+import itertools
 
 ## Class that calculates de scores for each document that answers a query, based on the choosen Ranking
 class Ranking:
@@ -133,7 +134,8 @@ class Ranking:
                             docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + doc_weight
 
             if self.consider_proximity:                
-                docs_scores_for_query = self.proximity(query, docs_scores_for_query)
+                #docs_scores_for_query = self.proximity(query, docs_scores_for_query)
+                docs_scores_for_query= self.proximity_try(query, docs_scores_for_query)
             
             docs_scores_for_query = {k: v for k, v in sorted(docs_scores_for_query.items(), key = lambda item: item[1], reverse = True)} # order by score ( decreasing order )
 
@@ -143,6 +145,144 @@ class Ranking:
             self.queries_latency[self.queries.index(query) + 1] = query_latency_time # i+1 because in the evaluation part the id for the queries starts at 1
 
 # Proximity:
+
+    ##############################################################
+    ## funções das combinações ##
+    ##############################################################
+
+    def proximity_try(self,query_terms, docs_scores_for_query):
+        docID_term = {} #para ver quais os termos q estão no mesmo doc
+        proximity_score_dict = defaultdict(int) # dictionary that contains the document ID and its proximity score
+        tp_score = {}
+        for term in query_terms:
+            if term in self.weighted_index:
+                for docID,doc_weight_pos in self.weighted_index[term][1].items():
+                    #self.weighted_index[term][1][docID][1] -> pos of terms in that docID
+                    if docID not in docID_term:
+                        docID_term[docID] = [term]
+                    else:
+                        tmp = docID_term[docID]
+                        tmp.append(term)
+                        docID_term[docID] = tmp
+        for docID, terms in docID_term.items():
+            term_pos = {}
+            for term in terms:
+                term_pos[term] = self.weighted_index[term][1][docID][1] #ir buscar as posiçoes do termo naquele documento
+            #para cada documento vamos calcular a min_window destes termos
+            #ate aqui acho q faz sentido, agora calcular a min_window acho q tá mal
+
+            ##DESCOMENTAR PARA CALCULO DA MIN WINDOW####
+            #min_window = self.calculate_min_window(term_pos)
+            #proximity_score_dict[docID] += self.calculate_boost(min_window)
+            ######################################
+            
+            if (len(term_pos) > 1): #se o documento tiver mais que um termo daquela query, calcula-se a proximidade deles
+                proximity_score_dict[docID] += self.check_proximity_combinations(term_pos)
+
+        for doc_id,prox_score in proximity_score_dict.items():
+            tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
+        return tp_score
+
+    def check_proximity_combinations(self, term_pos):
+        #uma forma estupida que pensei para calcular a min window 
+        all_terms_pos = []
+        for term, pos in term_pos.items():
+            all_terms_pos.append(pos)
+        possible_combinations = list(itertools.product(*all_terms_pos))  #gerar todas as combinações de posições para os termos que aparecem naquele documento
+        perfect_combination = min(possible_combinations) #a minima será a melhor hipótese (????)
+
+        min_window = abs(perfect_combination[0] - perfect_combination[len(perfect_combination)-1])
+
+        return self.calculate_boost(min_window)
+
+    def calculate_boost(self,min_window):
+
+        #acho q estes valores de boost n estao a fazer muito sentido xd
+
+        #with open("minwindows.txt","a") as file:
+            #file.write("\n"+str(min_window)+"\n")
+       
+        if min_window >= 100:
+            return 30
+        elif 50 <= min_window <= 99:
+            return 20
+        elif 20 <= min_window <= 49:
+            return 10
+        elif 1 <= min_window <= 19:
+            return 5
+        else:
+            return 0      
+        
+    ##############################################################
+    ## estas duas funções eram as do repositorio de ontem ##
+    ##############################################################
+
+    def calculate_min_window(self, term_pos):
+        x = 0
+        y = 0
+        window = (x, y)
+        windows = []
+        minWindow = 9999999
+
+        if(len(term_pos) == 1):
+            return minWindow
+        
+        #Calculate maximum position among all terms
+        maxValue = 0
+        i = 0
+        for key in term_pos:
+            term_pos[key].sort()
+            value = int(max(term_pos[key]))
+            if(i == 0):
+                maxValue = value
+            else:
+                if(value > maxValue):
+                    maxValue = value
+            i=i+1
+
+        #Calculate all possible window                      
+        while(y <= maxValue and x <= maxValue):
+            if(self.isFeasible(term_pos, window) == True):
+                windows.append(window)
+                x = x+1
+                window = (x, y)
+            else:
+                y = y+1
+                window = (x, y)
+
+        #Calculate minimum possible window    
+        minWindow = 0
+        for i in range(len(windows)):
+            if(len(windows) == 0):
+                break
+            win = windows[i][1] - windows[i][0] + 1
+            if(i == 0):
+                minWindow = win
+            else:
+                if(win < minWindow):
+                    minWindow = win
+                    
+        return minWindow
+        
+    #check if given window contains all the terms present atleast once
+    def isFeasible(self,pos_term, window):
+        isFeasible = False
+        for key in pos_term:
+            minPos = window[0]
+            maxPos = window[1]
+            for pos in pos_term[key]:
+                if(pos >= minPos and pos <= maxPos):
+                    isFeasible = True
+                    break
+                else:
+                    isFeasible = False
+            if(isFeasible == False):
+                return isFeasible
+        return isFeasible
+
+    ##############################################################
+    ## funções iniciais de comparar os termos 2 a 2 ##
+    ##############################################################
 
     def proximity(self, query_terms , docs_scores_for_query):
         proximity_score_dict = defaultdict(int) # dictionary that contains the document ID and its proximity score
