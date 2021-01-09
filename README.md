@@ -1,4 +1,4 @@
-     IR, January 2020
+     IR, January 2021
      Assignment 3: Indexing and Retrieval
      Authors: Alina Yanchuk, 89093; Ana Sofia Fernandes, 88739
 
