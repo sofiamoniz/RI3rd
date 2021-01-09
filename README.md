@@ -1,6 +1,6 @@
- IR, January 2020
-Assignment 3: Indexing and Retrieval
-Authors: Alina Yanchuk, 89093; Ana Sofia Fernandes, 88739
+     IR, January 2020
+     Assignment 3: Indexing and Retrieval
+     Authors: Alina Yanchuk, 89093; Ana Sofia Fernandes, 88739
 
 
 The searching program produces a file with the Weighted Index (produced by using SPIMI), based on the Tokenizer and Ranking function chosen, and a file with the documents IDs mapping, that will be used in the searching process. It also produces a file with the Ranking results and shows the Evaluation metrics calculated (it can have query term proximity if passed through argument).
