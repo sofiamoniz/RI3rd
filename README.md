@@ -8,7 +8,7 @@ The searching program produces a file with the Weighted Index (produced by using
 In order to everything work correctly, all the generated files by the indexing program must not have their defined names and Relative Paths changed!
 
 
-## To run the scripts:
+## To run the script:
 
     1. Run the command pip install nltk
     2. Run the command pip install psutil
