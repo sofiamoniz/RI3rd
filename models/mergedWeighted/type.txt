@@ -1,1 +1,1 @@
-i bm25 True
+i lnc_ltc True

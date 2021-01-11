@@ -90,12 +90,12 @@ class Ranking:
                         term_doc_weight = term_doc_weight_pos[0]
                         docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + (term_query_weight * term_doc_weight)
 
-            docs_scores_for_query={k: v for k, v in sorted(docs_scores_for_query.items(), key = lambda item: item[1], reverse = True)} # order by score (decreasing order)
-            
             if self.consider_proximity:                
-                self.scores.append(self.proximity(self.queries[i], docs_scores_for_query))
-            else:
-                self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
+                docs_scores_for_query = self.proximity(self.queries[i], docs_scores_for_query)
+        
+            docs_scores_for_query = {k: v for k, v in sorted(docs_scores_for_query.items(), key = lambda item: item[1], reverse = True)} # order by score ( decreasing order )
+
+            self.scores.append(docs_scores_for_query) # self.scores = [ docs_scores_for_query1, docs_scores_for_query2, ...]
             
             score_time = time.time() - start_time
             weight_time = self.latency_time_weight_queries[i]
@@ -104,7 +104,7 @@ class Ranking:
 
 # bm25:
 
-    def score_bm25(self): #passar arg a true se quisermos considerar
+    def score_bm25(self):
         """
         Computes the scores for all documents that answers the query
         """
@@ -134,7 +134,6 @@ class Ranking:
                             docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + doc_weight
 
             if self.consider_proximity:                
-                #docs_scores_for_query = self.proximity(query, docs_scores_for_query)
                 docs_scores_for_query = self.proximity(query, docs_scores_for_query)
             
             docs_scores_for_query = {k: v for k, v in sorted(docs_scores_for_query.items(), key = lambda item: item[1], reverse = True)} # order by score ( decreasing order )
@@ -147,9 +146,11 @@ class Ranking:
 # Proximity:
 
     def proximity(self, query_terms, docs_scores_for_query):
-        docID_term = {} #para ver quais os termos q estão no mesmo doc
+        """
+        """
+        docID_term = {} #will store the terms of the query that occur for that docID
         proximity_score_dict = defaultdict(int) # dictionary that contains the document ID and its proximity score
-        tp_score = {}
+        tp_score = {} #dictionary for the final score, after the proximity boost
         for term in query_terms:
             if term in self.weighted_index:
                 for docID,doc_weight_pos in self.weighted_index[term][1].items():
@@ -164,16 +165,19 @@ class Ranking:
         for docID, terms in docID_term.items():
             term_pos = {}
             for term in terms:
-                term_pos[term] = self.weighted_index[term][1][docID][1] #ir buscar as posiçoes do termo naquele documento
+                term_pos[term] = self.weighted_index[term][1][docID][1] #Take the positions of the term for that docID
  
             min_window = self.calculate_min_window(term_pos)
-            proximity_score_dict[docID] += min_window * 0.1
+            proximity_score_dict[docID] += min_window * 0.1 #query proximity boost
             
         for doc_id,prox_score in proximity_score_dict.items():
             tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
         return tp_score
 
     def calculate_min_window(self, pos_term):
+        """
+        Calculates the min window for consecutive terms
+        """
         if len(pos_term) == 0: return 0
         minWindow = 1
         all_pos = []
@@ -184,119 +188,7 @@ class Ranking:
                 if all_pos[j] == all_pos[i] + 1: minWindow += 1
 
         return minWindow
-    """
-    ##############################################################
-    ## funções das combinações ##
-    ##############################################################
-
-
-
-    def check_proximity_combinations(self, term_pos):
-        #uma forma estupida que pensei para calcular a min window 
-        all_terms_pos = []
-        for term, pos in term_pos.items():
-            all_terms_pos.append(pos)
-        possible_combinations = list(itertools.product(*all_terms_pos))  #gerar todas as combinações de posições para os termos que aparecem naquele documento
-        perfect_combination = min(possible_combinations) #a minima será a melhor hipótese (????)
-
-        min_window = abs(perfect_combination[0] - perfect_combination[len(perfect_combination)-1])
-
-        return self.calculate_boost(min_window)
-
-    def calculate_boost(self,min_window):
-
-        #acho q estes valores de boost n estao a fazer muito sentido xd
-
-        #with open("minwindows.txt","a") as file:
-            #file.write("\n"+str(min_window)+"\n")
-       
-        if min_window >= 100:
-            return 30
-        elif 50 <= min_window <= 99:
-            return 20
-        elif 20 <= min_window <= 49:
-            return 10
-        elif 1 <= min_window <= 19:
-            return 5
-        else:
-            return 0      
-        
-    ##############################################################
-    ## estas duas funções eram as do repositorio de ontem ##
-    ##############################################################
-    
-    def calculate_min_window(self, pos_term):
-        if len(pos_term) == 0: return 0
-        minWindow = 1
-        all_pos = []
-        for term, positions in pos_term.items():
-            all_pos += positions
-        for i in range(len(all_pos)):
-            for j in range(i + 1, len(all_pos)):
-                if all_pos[j] == all_pos[i] + 1: minWindow += 1
-
-        return minWindow
-        
-    #check if given window contains all the terms present atleast once
-    def isFeasible(self,pos_term, window):
-        isFeasible = False
-        for key in pos_term:
-            minPos = window[0]
-            maxPos = window[1]
-            for pos in pos_term[key]:
-                if(pos >= minPos and pos <= maxPos):
-                    isFeasible = True
-                    break
-                else:
-                    isFeasible = False
-            if(isFeasible == False):
-                return isFeasible
-        return isFeasible
-
-    ##############################################################
-    ## funções iniciais de comparar os termos 2 a 2 ##
-    ##############################################################
-
-    def proximity(self, query_terms , docs_scores_for_query):
-        proximity_score_dict = defaultdict(int) # dictionary that contains the document ID and its proximity score
-        tp_score = {}
-        for q_term in range(len(query_terms) - 1):
-            proximity_terms = query_terms[q_term:q_term + 2] #verify the proximity of the terms 2 by 2
-            if (proximity_terms[0] in self.weighted_index) & (proximity_terms[1] in self.weighted_index):
-                for docID,doc_weight_pos in self.weighted_index[proximity_terms[0]][1].items():
-                    numerator_score = 0
-                    if docID in self.weighted_index[proximity_terms[1]][1]:                      
-                        numerator_score = self.check_proximity(proximity_terms[0],proximity_terms[1],
-                                                           docID)
-                    proximity_score_dict[docID] += numerator_score
-                    
-        #for doc_id,prox_score in proximity_score_dict.items():
-         #   tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
-        for doc_id in docs_scores_for_query:
-            if doc_id in proximity_score_dict:
-                tp_score[doc_id] = proximity_score_dict[doc_id] + docs_scores_for_query[doc_id]
-            else:
-                tp_score[doc_id] = docs_scores_for_query[doc_id]
-        return tp_score
-
-    def check_proximity(self,term1,term2,DocID):
-        pos_doc_term1 = []
-        pos_doc_term2 = []
-        total_score = 0.0
-        pos_doc_term1 = self.weighted_index[term1][1][DocID][1] # positions of term in that doc
-        pos_doc_term2 = self.weighted_index[term2][1][DocID][1]
-        for pos in pos_doc_term1:
-            termscore = 0.0
-            if pos+1 in pos_doc_term2: # dar os scores q quisermos (?)
-                return True
-            total_score += termscore
-            #há algumas queries em q as palavras estão tão distantes q ele nem lhe dá score
-            #não sei se é suposto ser assim ou se temos que atribuir mais scores super baixinhos
-            #para distâncias muito altas
-        
-        return total_score # score of the 2 terms according to the distance between them
-    
-    """
+   
 ## AUXILIAR FUNCTIONS:
 
     def tokenize(self, queries):

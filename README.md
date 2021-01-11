@@ -13,8 +13,9 @@ In order to everything work correctly, all the generated files by the indexing p
     1. Run the command pip install nltk
     2. Run the command pip install psutil
     3. Run the command pip install pystemmer
+    4. Run the command pip install pandas
     
-    4. Execute the command:    
+    5. Execute the command:    
 
         python3 Search.py <tokenizer> <csv_file> <ranking_type> <numberOfDocsToReturn> <consider_proximity>
 
