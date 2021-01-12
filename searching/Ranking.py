@@ -79,7 +79,7 @@ class Ranking:
         """
         Computes the scores for all documents that answers the query
         """
-        for i in range(0,len(self.queries)): 
+        for i in range(0, len(self.queries)): 
 
             start_time = time.time() # latency time of this process, for each query
             docs_scores_for_query = defaultdict(int) # docs_scores_for_query = { doc1: score1, doc2: score2, ...} for all docs that answers the query
@@ -130,8 +130,8 @@ class Ranking:
                 
                 if term in self.weighted_index:  # if term exists in any document
                         for doc_id,doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
-                            doc_weight = doc_weight_pos[0]               
-                            docs_scores_for_query[doc_id] = docs_scores_for_query[doc_id] + doc_weight
+                            doc_weight = doc_weight_pos[0] * self.weighted_index[term][0] # doc weight * idf           
+                            docs_scores_for_query[doc_id] += doc_weight
 
             if self.consider_proximity:                
                 docs_scores_for_query = self.proximity(query, docs_scores_for_query)
@@ -147,14 +147,13 @@ class Ranking:
 
     def proximity(self, query_terms, docs_scores_for_query):
         """
+        Adds proximity boost based on how many query terms occur consecutively in a document (as a phrase)
         """
-        docID_term = {} #will store the terms of the query that occur for that docID
-        proximity_score_dict = defaultdict(int) # dictionary that contains the document ID and its proximity score
-        tp_score = {} #dictionary for the final score, after the proximity boost
+        docID_term = {} # will store the terms of the query that occur in that document
+
         for term in query_terms:
             if term in self.weighted_index:
-                for docID,doc_weight_pos in self.weighted_index[term][1].items():
-                    #self.weighted_index[term][1][docID][1] -> pos of terms in that docID
+                for docID, doc_weight_pos in self.weighted_index[term][1].items():
                     if docID not in docID_term:
                         docID_term[docID] = [term]
                     else:
@@ -165,18 +164,16 @@ class Ranking:
         for docID, terms in docID_term.items():
             term_pos = {}
             for term in terms:
-                term_pos[term] = self.weighted_index[term][1][docID][1] #Take the positions of the term for that docID
+                term_pos[term] = self.weighted_index[term][1][docID][1] # take the positions of the term for that docID
  
-            min_window = self.calculate_min_window(term_pos)
-            proximity_score_dict[docID] += min_window * 0.1 #query proximity boost
+            window = self.calculate_window(term_pos)
+            docs_scores_for_query[docID] += window * 0.1 # query proximity boost (bigger windows have a bigger query phrase)
             
-        for doc_id,prox_score in proximity_score_dict.items():
-            tp_score[doc_id] = prox_score + docs_scores_for_query[doc_id]
-        return tp_score
+        return docs_scores_for_query
 
-    def calculate_min_window(self, pos_term):
+    def calculate_window(self, pos_term):
         """
-        Calculates the min window for consecutive terms
+        Calculates how many terms occur in consecutive positions
         """
         if len(pos_term) == 0: return 0
         minWindow = 1

@@ -3,9 +3,9 @@
      Authors: Alina Yanchuk, 89093; Ana Sofia Fernandes, 88739
 
 
-The searching program produces the Weighted Index (produced by using SPIMI, partitioned by blocks), based on the Tokenizer and Ranking function chosen, and a file with the documents IDs mapping, that will be used in the searching process. It also produces a file with the Ranking results and shows the Evaluation metrics calculated (it can have query term proximity if passed through argument).
+The searching program produces the Ranking results and shows the Evaluation metrics calculated (it can have query term proximity if passed through argument). If the arguments (only the <tokenizer>, <ranking_type> and <consider_proximity>) passed by the user match the Weighted Index in disk, it is executed only the searching part. If not, it is executed the indexing program first. (if the .csv file is changed, please delete all in "models" folder, in order to re-run the indexing program with the new file)
 
-In order to everything work correctly, all the generated files by the indexing program must not have their defined names and Relative Paths changed!
+Please do not change the folders and files names / paths.
 
 
 ## To run the script:
@@ -21,10 +21,11 @@ In order to everything work correctly, all the generated files by the indexing p
 
             Examples: 
               Search.py i metadata.csv bm25 50 consider_proximity
-              Search.py s metadata.csv lnc_ltc 50
+              Search.py s metadata.csv lnc_ltc 50    
 
 
-##### All the results (Weighted Index, document IDs mapping and Ranking) are stored in the "results" folder             
+##### All the models (partioned Inverted Indexes, partioned Weighted Indexes and document IDs mapping) are stored in the "models" folder             
+##### All results from searching (returned documents and evaluation) are stored in "results" folder
 
 ##### The table with the Evaluation metrics can be found in the "results" folder, in the file table_evaluation.xlsx
 produced

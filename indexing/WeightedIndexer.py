@@ -27,12 +27,12 @@ class WeightedIndexer:
     
     def calc_avgdl(self):
         """
-        Calculate the Average Document Length foR BM25
+        Calculate the Average Document Length for BM25
         """
-        count=0
+        count = 0
         for doc_id in self.documents_len:
             self.avgdl += self.documents_len[doc_id]
-            count+=1
+            count += 1
         self.avgdl /= count
 
 # lnc.ltc:
@@ -41,6 +41,8 @@ class WeightedIndexer:
         """
         Calculates the lnc.ltc weights of each document
         """
+        doc_pow_sum = defaultdict(int) # This will be used as the normalization factor.
+
         for term in self.inverted_index:
             docsWeigh = defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...}
             idf_docsWeight = [] # [idf,docWeights_with_lnc_ltc_and_positions]  
@@ -48,8 +50,6 @@ class WeightedIndexer:
             idf = log10(self.total_docs/self.inverted_index[term][0])
             idf_docsWeight.append(idf)         
 
-            doc_pow_sum = defaultdict(int) # This will be used as the normalization factor.
-                          # This is a default dictionary so that if a certain value doesn't exist, it will have a default value of 0
             
             for doc_id in self.inverted_index[term][1]: 
                 try: tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
@@ -58,15 +58,18 @@ class WeightedIndexer:
                 doc_pow_sum[doc_id] += weight ** 2 # sum of all the weights of each document
                                                    # each weight to the pow of 2
                                                    # this will be used in the cossine normalization
+                docsWeigh[doc_id][0] = weight
                 docsWeigh[doc_id][1] = self.inverted_index[term][1][doc_id] # list with term positions in this doc
-            # normalization - cossine normalization:
-            # the cossine normalization is sqrt the inverse of the sum of all the weights of a document, each one to the pow of 2
-            for doc_id in doc_pow_sum:
-                docsWeigh[doc_id][0] = 1 / sqrt(doc_pow_sum[doc_id])
-                        
+            
             idf_docsWeight.append(docsWeigh)
-
             self.weighted_index[term] = idf_docsWeight
+
+        ## Normalization:
+        for term, idf_docsWeight in self.weighted_index.items():
+            for doc_id, values in idf_docsWeight[1].items():
+                values[0] = values[0] * 1/sqrt(doc_pow_sum[doc_id])
+                        
+            
 
 # bm25:
 
@@ -79,14 +82,15 @@ class WeightedIndexer:
         for term in self.inverted_index: 
             docsWeigh = defaultdict(lambda:[0,list]) # {"doc1": [weight_of_term_in_doc1, [position_of_term_in_doc1, next_position_of_term_in_doc1,...],...} 
             idf_docsWeight = [] # [idf, docWeights_with_bm25_and_positions]  
-
             idf = log10(self.total_docs / self.inverted_index[term][0])
             idf_docsWeight.append(idf)
             for doc_id in self.inverted_index[term][1]: 
+                
                 try: tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
                 except: tf = self.inverted_index[term][1][doc_id]
-                docsWeigh[doc_id][0] += (idf * tf * (k+1)
-                      / (tf + k * (1 - b + b * self.documents_len[int(doc_id)] / self.avgdl))) # bm25 formula
+                if term=="alig": print(tf)
+                
+                docsWeigh[doc_id][0] = ((k + 1) * tf) / (k * ((1 - b) + b*(self.documents_len[int(doc_id)]) / self.avgdl) + tf) # okapi bm25 formula
                 docsWeigh[doc_id][1] = self.inverted_index[term][1][doc_id] # list with term positions in this doc
 
             idf_docsWeight.append(docsWeigh)
