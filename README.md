@@ -3,7 +3,7 @@
      Authors: Alina Yanchuk, 89093; Ana Sofia Fernandes, 88739
 
 
-The searching program produces the Ranking results and shows the Evaluation metrics calculated (it can have query term proximity if passed through argument). If the arguments (only the <tokenizer>, <ranking_type> and <consider_proximity>) passed by the user match the Weighted Index in disk, it is executed only the searching part. If not, it is executed the indexing program first. (if the .csv file is changed, please delete all in "models" folder, in order to re-run the indexing program with the new file)
+The searching program produces the Ranking results and shows the Evaluation metrics calculated (it can have query term proximity if passed through argument). If the arguments (only the tokenizer, ranking_type and consider_proximity) passed by the user match the Weighted Index in disk, it is executed only the searching part. If not, it is executed the indexing program first. (if the .csv file is changed, please delete all in "models" folder, in order to re-run the indexing program with the new file)
 
 Please do not change the folders and files names / paths.
 
