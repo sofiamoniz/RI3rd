@@ -131,7 +131,7 @@ def evaluate(top, relevances, scores_for_evaluation, queries_processing, ranking
             [" ", "Precision", "Recall", "F-Measure", "Avg Precision", "Ndcg", "Latency" ])
         writer.writerow(
             ["Query", "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top) ])
-        for i in range(1,len(queries_latency)):
+        for i in range(1,len(queries_latency)+1):
             writer.writerow([i, round(evaluation.queries_precision[str(i)], 3), round(evaluation.queries_recall[str(i)], 3), round(evaluation.queries_f1[str(i)], 3), round(evaluation.queries_average_precision[str(i)], 3), round(evaluation.queries_ndcg[str(i)], 3), round(queries_latency[i], 3)])
 
     

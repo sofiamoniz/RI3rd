@@ -29,5 +29,4 @@ Please do not change the folders and files names / paths.
 ##### All the models (partioned Inverted Indexes, partioned Weighted Indexes and document IDs mapping) are stored in the "models" folder             
 ##### All results from searching (returned documents and evaluation) are stored in "results" folder
 
-##### The table with the Evaluation metrics can be found in the "results" folder, in the file table_evaluation.xlsx
-produced
+##### The table with the Evaluation metrics can be found in the "results" folder, in the files table_evaluation_bm25.xlsx and table_evaluation_lnc_ltc.xlsx
