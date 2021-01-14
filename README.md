@@ -5,7 +5,7 @@
 
 The searching program produces the Ranking results and shows the Evaluation metrics calculated (it can have query term proximity if passed through argument). If the arguments (only the tokenizer, ranking_type and consider_proximity) passed by the user match the Weighted Index in disk, it is executed only the searching part. If not, it is executed the indexing program first. 
 
-CSV file: from 12/01/2021 (if the .csv file is changed, please delete all in "models" folder, in order to re-run the indexing program with the new file)
+Currenlty no index in disk because is too big to submit in e-learning: please put the metadata.csv in this folder (if in next executions the csv file is changed, please delete all in "models" folder, in order to re-run the indexing program with the new csv file)
 
 Please do not change the folders and files names / paths.
 
@@ -27,6 +27,6 @@ Please do not change the folders and files names / paths.
 
 
 ##### All the models (partioned Inverted Indexes, partioned Weighted Indexes and document IDs mapping) are stored in the "models" folder             
-##### All results from searching (returned documents and evaluation) are stored in "results" folder
+##### All results from searching (returned documents and evaluation) will be stored in "results" folder
 
-##### The table with the Evaluation metrics can be found in the "results" folder, in the files table_evaluation_bm25.xlsx and table_evaluation_lnc_ltc.xlsx
+##### The table with the Evaluation metrics (with and without proximity, separated by tabs) can also be found in the "results" folder, in the files table_evaluation_bm25.xlsx and table_evaluation_lnc_ltc.xlsx

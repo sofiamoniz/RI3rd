@@ -1,6 +1,6 @@
 """
-IR, November 2020
-Assignment 2: Ranked Retrieval
+IR, December 2020
+Assignment 3: Ranked Retrieval
 Autors: Alina Yanchuk, 89093
         Ana Sofia Fernandes, 88739
 """
@@ -102,9 +102,8 @@ def retrieval_engine(tokenizer, ranking_type, number_of_docs_to_return, consider
     
 def evaluate(top, relevances, scores_for_evaluation, queries_processing, ranking_type, queries_latency):
     """
-    Evaluates the retrieval engine with some relevant metrics
+    Evaluates the retrieval engine with some relevant metrics and shows the results
     """
-
     evaluation = Evaluation(relevances, scores_for_evaluation)
 
     for query_id in scores_for_evaluation:
@@ -123,16 +122,6 @@ def evaluate(top, relevances, scores_for_evaluation, queries_processing, ranking
     print("Median of Queries Latency -> " + str(round(median(list(queries_latency.values())), 3)) + " seconds")
 
     print("\nRetrieved documents, for each query, in: " + "results/ranking_" + ranking_type + ".txt\n")
-
-    import csv
-    with open('results/evaluation_' + ranking_type + '.csv', mode='w') as file:
-        writer = csv.writer(file)
-        writer.writerow(
-            [" ", "Precision", "Recall", "F-Measure", "Avg Precision", "Ndcg", "Latency" ])
-        writer.writerow(
-            ["Query", "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top), "@"+str(top) ])
-        for i in range(1,len(queries_latency)+1):
-            writer.writerow([i, round(evaluation.queries_precision[str(i)], 3), round(evaluation.queries_recall[str(i)], 3), round(evaluation.queries_f1[str(i)], 3), round(evaluation.queries_average_precision[str(i)], 3), round(evaluation.queries_ndcg[str(i)], 3), round(queries_latency[i], 3)])
 
     
 ## AUXILIAR FUNCTIONS: 

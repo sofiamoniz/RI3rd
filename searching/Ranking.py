@@ -158,7 +158,7 @@ class Ranking:
 
     def calculate_window(self, pos_term):
         """
-        Calculates how many terms occur in consecutive positions
+        Calculates how many terms occur in consecutive positions (from left to right)
         """
         if len(pos_term) == 0: return 0
         minWindow = 1
