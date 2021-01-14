@@ -26,6 +26,10 @@ class Ranking:
         self.consider_proximity = consider_proximity
 
         self.weighted_index = {} # will store weighted index from disk
+        self.query_terms = set() 
+        for query in self.queries:
+            for term in query:
+                self.query_terms.add(term)
         self.partitions_in_memory = [] # index partitions in memory
         self.weighted_queries = [] # only for lnc.ltc
         self.scores = [] # scores of documents for each query
@@ -48,21 +52,11 @@ class Ranking:
             for term in query: 
                 weighted_query[term] = weighted_query[term] + 1 # tf on query
 
-            for term in weighted_query:
-
-                index_in_memory = False
-                for partition in self.partitions_in_memory:
-                    if term[0] in self.char_range(partition[0], partition[1]):
-                        index_in_memory = True
-                        break
-                if index_in_memory == False:
-                    if self.memory_full(): # there is no memory available to store more index parts
-                        self.partitions_in_memory = [] # empty all
-                        self.weighted_index = {}
+            if term not in self.weighted_index: # term weighted index not in memory
+                    if self.memory_full(): 
+                        self.reduce_index_in_memory()
                     self.weighted_index.update(self.get_weighted_index(term))
-                
-                if term in self.weighted_index.keys(): # if the term exists on any document   
-                    weighted_query[term] = (1 + log10(weighted_query[term])) * self.weighted_index[term][0] # self.weighted_index[term][0] -> idf of the term 
+            weighted_query[term] = (1 + log10(weighted_query[term])) * self.weighted_index[term][0] # self.weighted_index[term][0] -> idf of the term 
  
             # Normalization:
             for term,value in weighted_query.items():
@@ -116,22 +110,13 @@ class Ranking:
             query_length = 0      
             
             for term in query: 
-
-                index_in_memory = False
-                for partition in self.partitions_in_memory:
-                    if term[0] in self.char_range(partition[0], partition[1]):
-                        index_in_memory = True
-                        break
-                if index_in_memory == False:
-                    if self.memory_full(): # there is no memory available to store more index parts
-                        self.partitions_in_memory = [] # empty all
-                        self.weighted_index = {}
+                if term not in self.weighted_index: # term weighted index not in memory
+                    if self.memory_full(): 
+                        self.reduce_index_in_memory()
                     self.weighted_index.update(self.get_weighted_index(term))
-                
-                if term in self.weighted_index:  # if term exists in any document
-                        for doc_id,doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
-                            doc_weight = doc_weight_pos[0] * self.weighted_index[term][0] # doc weight * idf           
-                            docs_scores_for_query[doc_id] += doc_weight
+                for doc_id,doc_weight_pos in self.weighted_index[term][1].items(): # all docs ( their ids and weights for this term ) that have the term 
+                    doc_weight = doc_weight_pos[0] * self.weighted_index[term][0] # doc weight * idf           
+                    docs_scores_for_query[doc_id] += doc_weight
 
             if self.consider_proximity:                
                 docs_scores_for_query = self.proximity(query, docs_scores_for_query)
@@ -167,7 +152,7 @@ class Ranking:
                 term_pos[term] = self.weighted_index[term][1][docID][1] # take the positions of the term for that docID
  
             window = self.calculate_window(term_pos)
-            docs_scores_for_query[docID] += window * 0.1 # query proximity boost (bigger windows have a bigger query phrase)
+            docs_scores_for_query[docID] += window * 0.05 # query proximity boost (bigger windows have a bigger query phrase)
             
         return docs_scores_for_query
 
@@ -235,4 +220,19 @@ class Ranking:
             return ("models/mergedWeighted/q-z.txt", ("q", "z"))
 
     def memory_full(self):
+        """
+        Checks if memory is full
+        """
+        if len(self.weighted_index) > 60000: return True
         return False
+
+    def reduce_index_in_memory(self):
+        """
+        Reduces the self.weighted_index len, by removing some entries
+        """
+        i = 0
+        while(i < 55000): # we will remove 55k random entries
+            for key in list(self.weighted_index.keys()):
+                if key not in self.query_terms: # we will need index for this term later, if considering proximity for example
+                    del self.weighted_index[key]
+                    i += 1

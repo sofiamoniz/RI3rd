@@ -88,7 +88,6 @@ class WeightedIndexer:
                 
                 try: tf = len(self.inverted_index[term][1][doc_id]) # term frequency (tf) - number of times each term appears in a doc
                 except: tf = self.inverted_index[term][1][doc_id]
-                if term=="alig": print(tf)
                 
                 docsWeigh[doc_id][0] = ((k + 1) * tf) / (k * ((1 - b) + b*(self.documents_len[int(doc_id)]) / self.avgdl) + tf) # okapi bm25 formula
                 docsWeigh[doc_id][1] = self.inverted_index[term][1][doc_id] # list with term positions in this doc
